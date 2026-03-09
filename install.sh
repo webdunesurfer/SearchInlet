@@ -101,16 +101,20 @@ echo -e "  Admin Dashboard: ${GREEN}https://searchinlet.com${NC}"
 echo -e "  Username:        ${GREEN}admin${NC}"
 echo -e "  Password:        ${GREEN}${ADMIN_PASSWORD}${NC}"
 echo -e "${BLUE}--------------------------------------------------${NC}"
-echo -e "\nTo start the server now:"
-echo -e "  cd $INSTALL_DIR && source .env && SEARXNG_URL=http://localhost:8088/search TRANSPORT_MODE=admin HTTP_PORT=8080 ./bin/mcp-server-linux"
 
-echo -e "\nOr connect your AI Agent via SSH:"
+echo -e "\n${BLUE}🚀 How to connect your AI Agent (Cursor / Claude):${NC}"
+echo -e "\n${GREEN}Option A: SSE (Recommended)${NC}"
+echo -e "Use the URL: ${BLUE}https://searchinlet.com/sse${NC}"
+echo -e "And add the header: ${BLUE}Authorization: Bearer sk-YOUR_TOKEN_FROM_DASHBOARD${NC}"
+
+echo -e "\n${GREEN}Option B: SSH (Legacy)${NC}"
+echo -e "Copy this into your MCP settings:"
 echo "{
   \"mcpServers\": {
     \"searchinlet\": {
       \"command\": \"ssh\",
       \"args\": [
-        \"user@your-server-ip\",
+        \"vkh@194.163.160.234\",
         \"SEARXNG_URL=http://localhost:8088/search $INSTALL_DIR/bin/mcp-server-linux\"
       ]
     }

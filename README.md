@@ -68,7 +68,27 @@ The script will automatically:
 4. Cross-compile the Go MCP server binary (no local Go installation required).
 
 ### Connecting your AI Agent (Cursor / Claude Desktop)
-Since this is typically deployed on a remote server, you connect to it via an SSH tunnel in your Agent's MCP settings:
+
+#### Option A: HTTPS / SSE (Recommended)
+1.  Log into your dashboard at `https://searchinlet.com`.
+2.  Generate an **Access Token**.
+3.  Add the following to your Agent's MCP config:
+
+```json
+{
+  "mcpServers": {
+    "searchinlet": {
+      "url": "https://searchinlet.com/sse",
+      "headers": {
+        "Authorization": "Bearer sk-YOUR_TOKEN_HERE"
+      }
+    }
+  }
+}
+```
+
+#### Option B: SSH Tunnel (Legacy)
+If you prefer not to expose the server via HTTPS, you can still connect via SSH:
 
 ```json
 {
@@ -76,8 +96,8 @@ Since this is typically deployed on a remote server, you connect to it via an SS
     "searchinlet": {
       "command": "ssh",
       "args": [
-        "user@your-server-ip",
-        "SEARXNG_URL=http://localhost:8088/search /path/to/SearchInlet/bin/mcp-server-linux"
+        "vkh@194.163.160.234",
+        "SEARXNG_URL=http://localhost:8088/search /home/vkh/SearchInlet/bin/mcp-server-linux"
       ]
     }
   }
