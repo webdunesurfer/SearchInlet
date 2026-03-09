@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>SearchInlet Admin</title>
+	<style>
+		body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
+		.container { max-width: 1200px; margin: 0 auto; }
+		h1 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+		.card { background: white; border-radius: 8px; padding: 20px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+		.stats { display: flex; gap: 20px; }
+		.stat { background: #007bff; color: white; padding: 20px; border-radius: 8px; flex: 1; text-align: center; }
+		.stat h3 { margin: 0 0 10px 0; font-size: 32px; }
+		.stat p { margin: 0; opacity: 0.9; }
+		table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+		th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+		th { background: #f8f9fa; font-weight: 600; }
+		tr:hover { background: #f8f9fa; }
+		.btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block; font-size: 14px; }
+		.btn-primary { background: #007bff; color: white; }
+		.btn-danger { background: #dc3545; color: white; }
+		.btn:hover { opacity: 0.9; }
+		.token-value { background: #f8f9fa; padding: 8px; border-radius: 4px; font-family: monospace; word-break: break-all; }
+		.form-group { margin: 15px 0; }
+		.form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
+		.form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+		.alert { padding: 15px; border-radius: 4px; margin: 15px 0; }
+		.alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+		.alert-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+	</style>
+</head>
+<body>
+	<div class="container">
+		<h1>SearchInlet Admin Dashboard</h1>
+		
+		{{if .token_created}}
+		<div class="alert alert-success">
+			<strong>New token created!</strong><br>
+			Copy this token immediately (it won't be shown again):<br>
+			<div class="token-value">{{.token_created}}</div>
+		</div>
+		{{end}}
+
+		<div class="card">
+			<div class="stats">
+				<div class="stat">
+					<h3>{{.ActiveTokens}}</h3>
+					<p>Active Tokens</p>
+				</div>
+				<div class="stat">
+					<h3>{{.TotalTokens}}</h3>
+					<p>Total Tokens</p>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<h2>Create New Token</h2>
+			<form action="/create-token" method="POST">
+				<div class="form-group">
+					<label for="name">Token Name (optional)</label>
+					<input type="text" id="name" name="name" placeholder="e.g., Cursor IDE, Custom Script">
+				</div>
+				<button type="submit" class="btn btn-primary">Create Token</button>
+			</form>
+		</div>
+
+		<div class="card">
+			<h2>Tokens</h2>
+			<table>
+				<thead>
+					<tr>
+						<th>Name</th>
+						<th>Value</th>
+						<th>Status</th>
+						<th>Last Used</th>
+						<th>Actions</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .Tokens}}
+					<tr>
+						<td>{{.Name}}</td>
+						<td><div class="token-value">{{.Value}}</div></td>
+						<td>{{if .Active}}<span style="color: green;">Active</span>{{else}}<span style="color: red;">Revoked</span>{{end}}</td>
+						<td>{{if .LastUsed}}{{.LastUsed.Format "2006-01-02 15:04:05"}}{{else}}Never{{end}}</td>
+						<td>
+							{{if .Active}}
+							<a href="/revoke-token?id={{.ID}}" class="btn btn-danger" onclick="return confirm('Revoke this token?')">Revoke</a>
+							{{else}}
+							<span style="color: #999;">-</span>
+							{{end}}
+						</td>
+					</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+
+		<div class="card">
+			<h2>Usage Statistics</h2>
+			<table>
+				<thead>
+					<tr>
+						<th>Token</th>
+						<th>Total Searches</th>
+						<th>Last Activity</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .UsageStats}}
+					<tr>
+						<td>{{.TokenName}}</td>
+						<td>{{.TotalUses}}</td>
+						<td>{{if .LastUsed}}{{.LastUsed.Format "2006-01-02 15:04:05"}}{{else}}Never{{end}}</td>
+					</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+	</div>
+</body>
+</html>
