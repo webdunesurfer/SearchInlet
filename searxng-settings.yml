@@ -4,6 +4,14 @@ general:
   debug: false
   instance_name: "SearchInlet SearXNG"
 
+enabled_plugins:
+  - 'Hash plugin'
+  - 'Self-contained snippets'
+  - 'Tracker URL remover'
+
+bot_detection:
+  enabled: false
+
 search:
   safe_search: 0
   autocomplete: ""
