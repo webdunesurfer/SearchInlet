@@ -46,6 +46,7 @@ The project is being developed in three primary phases:
 1.  **[Phase 1: Core Foundation](docs/Phase1-Core.md)** - Basic MCP gateway, SearXNG client, and sanitization logic.
 2.  **[Phase 2: User & Service Layer](docs/Phase2-ServiceLayer.md)** - Auth, Rate-limiting, DB persistence, and User Dashboard.
 3.  **[Phase 3: Billing & Scale](docs/Phase3-BillingScale.md)** - Stripe integration, advanced distillation (Ollama), and global scaling.
+4.  **[Phase 4: Search Infrastructure Scaling](docs/Phase4-SearchScaling.md)** - Search backend abstraction, proxy pools, and telemetry.
 
 ---
 

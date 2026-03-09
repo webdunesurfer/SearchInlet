@@ -38,6 +38,11 @@ The VPS is used for "real-world" integration and multi-user testing.
 - **Key Test:** Automated billing cycle simulation (Stripe webhooks).
 - **VPS Test:** Load testing using a tool like `k6` to simulate high concurrent usage, ensuring the system doesn't crash or leak memory under stress.
 
+### Phase 4: Search Infrastructure Scaling
+- **Goal:** Unblockable search backend via proxy pools and provider abstraction.
+- **Key Test:** `go test` for `internal/search` with mocked providers ensuring business logic remains decoupled.
+- **VPS Test:** End-to-end integration test verifying that outbound requests from SearXNG to search engines are successfully routing through the configured proxy pool.
+
 ---
 
 ## 3. Continuous Integration (CI)
