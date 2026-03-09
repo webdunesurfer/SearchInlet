@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/webdunesurfer/SearchInlet/internal/db"
@@ -12,17 +11,13 @@ import (
 )
 
 type TokenManager struct {
-	db           *gorm.DB
-	rateLimit    map[uint]int
-	rateLimitMu  sync.Mutex
-	limitPerDay  int
-	rateLimitMu2 sync.Mutex
+	db          *gorm.DB
+	limitPerDay int
 }
 
 func NewTokenManager(db *gorm.DB, limitPerDay int) *TokenManager {
 	return &TokenManager{
 		db:          db,
-		rateLimit:   make(map[uint]int),
 		limitPerDay: limitPerDay,
 	}
 }
@@ -92,33 +87,20 @@ func (tm *TokenManager) RevokeToken(id uint) error {
 }
 
 func (tm *TokenManager) CheckRateLimit(tokenID uint) bool {
-	tm.rateLimitMu.Lock()
-	defer tm.rateLimitMu.Unlock()
-
-	tm.rateLimitMu2.Lock()
 	now := time.Now()
-	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-	tm.db.Exec("DELETE FROM usage_logs WHERE created_at < ?", monthStart)
-	tm.rateLimitMu2.Unlock()
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 
 	var count int64
-	tm.db.Model(&db.UsageLog{}).Where("token_id = ? AND created_at >= ?", tokenID, monthStart).Count(&count)
+	tm.db.Model(&db.UsageLog{}).Where("token_id = ? AND created_at >= ?", tokenID, todayStart).Count(&count)
 
-	if count >= int64(tm.limitPerDay) {
-		return false
-	}
-
-	return true
+	return count < int64(tm.limitPerDay)
 }
 
 func (tm *TokenManager) LogUsage(tokenID uint, endpoint string) error {
-	if !tm.CheckRateLimit(tokenID) {
-		return fmt.Errorf("rate limit exceeded")
-	}
-
 	log := &db.UsageLog{
 		TokenID:  tokenID,
 		Endpoint: endpoint,
 	}
 	return tm.db.Create(log).Error
 }
+

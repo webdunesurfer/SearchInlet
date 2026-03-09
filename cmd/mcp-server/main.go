@@ -78,7 +78,8 @@ func main() {
 			json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 		})
 
-		mux.Handle("/sse", auth.Middleware(tokenManager)(http.HandlerFunc(sseServer.HandleSSE)))
+		mux.Handle("/sse", sseServer.Handler())
+		mux.Handle("/sse/", sseServer.Handler())
 
 		mux.HandleFunc("/", dash.HandleHome)
 		mux.HandleFunc("/login", dash.HandleLogin)

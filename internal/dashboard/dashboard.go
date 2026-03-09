@@ -1,7 +1,9 @@
 package dashboard
 
 import (
+	"crypto/rand"
 	"embed"
+	"encoding/hex"
 	"html/template"
 	"log"
 	"net/http"
@@ -18,11 +20,12 @@ import (
 var dashboardFS embed.FS
 
 type Dashboard struct {
-	db          *gorm.DB
-	tm          *auth.TokenManager
-	templateDir string
-	adminUser   string
-	adminPass   string
+	db           *gorm.DB
+	tm           *auth.TokenManager
+	templateDir  string
+	adminUser    string
+	adminPass    string
+	sessionToken string
 }
 
 type DashboardData struct {
@@ -39,12 +42,17 @@ type UsageStat struct {
 }
 
 func NewDashboard(db *gorm.DB, tm *auth.TokenManager, adminUser, adminPass string) *Dashboard {
+	bytes := make([]byte, 32)
+	rand.Read(bytes)
+	sessionToken := hex.EncodeToString(bytes)
+
 	return &Dashboard{
-		db:          db,
-		tm:          tm,
-		templateDir: "./templates",
-		adminUser:   adminUser,
-		adminPass:   adminPass,
+		db:           db,
+		tm:           tm,
+		templateDir:  "./templates",
+		adminUser:    adminUser,
+		adminPass:    adminPass,
+		sessionToken: sessionToken,
 	}
 }
 
@@ -85,10 +93,12 @@ func (d *Dashboard) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 		if user == d.adminUser && pass == d.adminPass {
 			http.SetCookie(w, &http.Cookie{
-				Name:   "admin_session",
-				Value:  "authenticated",
-				MaxAge: 86400,
-				Path:   "/",
+				Name:     "admin_session",
+				Value:    d.sessionToken,
+				MaxAge:   86400,
+				Path:     "/",
+				HttpOnly: true,
+				SameSite: http.SameSiteStrictMode,
 			})
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
@@ -135,7 +145,7 @@ func (d *Dashboard) loginForm(w http.ResponseWriter) {
 
 func (d *Dashboard) authenticate(w http.ResponseWriter, r *http.Request) bool {
 	cookie, err := r.Cookie("admin_session")
-	if err != nil || cookie.Value != "authenticated" {
+	if err != nil || cookie.Value != d.sessionToken {
 		return false
 	}
 	return true

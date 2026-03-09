@@ -2,9 +2,7 @@ package mcp
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
@@ -51,31 +49,6 @@ func (s *SSEServer) registerTools() {
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
 		Name:        "search",
 		Description: "Search the internet via SearXNG with LLM-optimized output",
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"query": map[string]interface{}{
-					"type":        "string",
-					"description": "The search query",
-				},
-				"limit": map[string]interface{}{
-					"type":        "integer",
-					"description": "Maximum number of results (default 10)",
-					"minimum":     1,
-					"maximum":     50,
-				},
-				"engines": map[string]interface{}{
-					"type":        "array",
-					"items":       map[string]string{"type": "string"},
-					"description": "Specific search engines to use",
-				},
-				"max_tokens": map[string]interface{}{
-					"type":        "integer",
-					"description": "Maximum tokens for the combined results (default 2000)",
-				},
-			},
-			"required": []string{"query"},
-		},
 	}, s.handleSearch)
 }
 
@@ -130,55 +103,14 @@ func (s *SSEServer) handleSearch(ctx context.Context, req *mcp.CallToolRequest, 
 	}, nil, nil
 }
 
-func (s *SSEServer) HandleSSE(w http.ResponseWriter, r *http.Request) {
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming not supported", http.StatusInternalServerError)
-		return
-	}
+func (s *SSEServer) Handler() http.Handler {
+	// Create the official SDK SSE handler
+	sseHandler := mcp.NewSSEHandler(func(req *http.Request) *mcp.Server {
+		return s.mcpServer
+	}, nil)
 
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-
-	flusher.Flush()
-
-	encoder := json.NewEncoder(w)
-
-	message := map[string]interface{}{
-		"jsonrpc": "2.0",
-		"id":      "init",
-		"method":  "initialize",
-		"params": map[string]interface{}{
-			"protocolVersion": "2024-11-05",
-			"clientInfo": map[string]interface{}{
-				"name":    "SearchInlet",
-				"version": "1.0.0",
-			},
-		},
-	}
-
-	if err := encoder.Encode(message); err != nil {
-		log.Printf("Error encoding message: %v", err)
-		return
-	}
-
-	flusher.Flush()
-}
-
-func (s *SSEServer) HandleHealth(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
-}
-
-func (s *SSEServer) RunHTTP(addr string) error {
-	mux := http.NewServeMux()
-
+	// Wrap it in our token authentication/rate-limiting middleware
 	authMiddleware := auth.Middleware(s.tokenManager)
-
-	mux.HandleFunc("/health", s.HandleHealth)
-	mux.Handle("/sse", authMiddleware(http.HandlerFunc(s.HandleSSE)))
-
-	log.Printf("Starting SSE server on %s", addr)
-	return http.ListenAndServe(addr, mux)
+	
+	return authMiddleware(sseHandler)
 }
