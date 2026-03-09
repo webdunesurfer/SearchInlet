@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/webdunesurfer/SearchInlet/internal/auth"
@@ -22,6 +23,7 @@ var dashboardFS embed.FS
 type Dashboard struct {
 	db           *gorm.DB
 	tm           *auth.TokenManager
+	ll           *auth.LoginLimiter
 	templateDir  string
 	adminUser    string
 	adminPass    string
@@ -33,6 +35,8 @@ type DashboardData struct {
 	UsageStats   []UsageStat
 	ActiveTokens int
 	TotalTokens  int
+	ErrorMessage string
+	SuccessToken string
 }
 
 type UsageStat struct {
@@ -49,6 +53,7 @@ func NewDashboard(db *gorm.DB, tm *auth.TokenManager, adminUser, adminPass strin
 	return &Dashboard{
 		db:           db,
 		tm:           tm,
+		ll:           auth.NewLoginLimiter(db),
 		templateDir:  "./templates",
 		adminUser:    adminUser,
 		adminPass:    adminPass,
@@ -58,11 +63,24 @@ func NewDashboard(db *gorm.DB, tm *auth.TokenManager, adminUser, adminPass strin
 
 func (d *Dashboard) HandleHome(w http.ResponseWriter, r *http.Request) {
 	if !d.authenticate(w, r) {
-		d.loginForm(w)
+		d.loginForm(w, "")
 		return
 	}
 
 	data := DashboardData{}
+	
+	// Check for recently created token cookie
+	if cookie, err := r.Cookie("token_created"); err == nil {
+		data.SuccessToken = cookie.Value
+		// Expire the cookie immediately
+		http.SetCookie(w, &http.Cookie{
+			Name:   "token_created",
+			Value:  "",
+			MaxAge: -1,
+			Path:   "/",
+		})
+	}
+
 	tokens, _ := d.tm.GetAllTokens()
 	data.Tokens = tokens
 	data.TotalTokens = len(tokens)
@@ -87,11 +105,20 @@ func (d *Dashboard) HandleHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *Dashboard) HandleLogin(w http.ResponseWriter, r *http.Request) {
+	// Extract IP (handling potential proxy headers if needed later)
+	ip := strings.Split(r.RemoteAddr, ":")[0]
+
+	if d.ll.IsBanned(ip) {
+		http.Error(w, "Too many failed attempts. Please try again later.", http.StatusTooManyRequests)
+		return
+	}
+
 	if r.Method == "POST" {
 		user := r.FormValue("username")
 		pass := r.FormValue("password")
 
 		if user == d.adminUser && pass == d.adminPass {
+			d.ll.LogAttempt(ip, true)
 			http.SetCookie(w, &http.Cookie{
 				Name:     "admin_session",
 				Value:    d.sessionToken,
@@ -104,35 +131,43 @@ func (d *Dashboard) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		d.ll.LogAttempt(ip, false)
+		d.loginForm(w, "Invalid credentials")
 		return
 	}
 
-	d.loginForm(w)
+	d.loginForm(w, "")
 }
 
-func (d *Dashboard) loginForm(w http.ResponseWriter) {
+func (d *Dashboard) loginForm(w http.ResponseWriter, errorMsg string) {
 	tmplStr := `
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Login</title>
+	<title>SearchInlet - Login</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<style>
-		body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f5f5f5; }
-		.login-box { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-		input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-		button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+		body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f0f2f5; margin: 0; }
+		.login-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+		input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+		button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: 600; transition: background 0.2s; }
 		button:hover { background: #0056b3; }
-		h2 { text-align: center; margin-bottom: 20px; }
+		h2 { text-align: center; margin-bottom: 8px; color: #1c1e21; }
+		p.subtitle { text-align: center; color: #606770; margin-bottom: 24px; font-size: 14px; }
+		.error { color: #dc3545; background: #f8d7da; padding: 12px; border-radius: 6px; margin-bottom: 20px; text-align: center; font-size: 14px; border: 1px solid #f5c6cb; }
 	</style>
 </head>
 <body>
 	<div class="login-box">
-		<h2>Admin Login</h2>
-		<form method="POST">
-			<input type="text" name="username" placeholder="Username" required>
-			<input type="password" name="password" placeholder="Password" required>
-			<button type="submit">Login</button>
+		<h2>SearchInlet Admin</h2>
+		<p class="subtitle">Please sign in to manage tokens</p>
+		{{if .}}
+		<div class="error">{{.}}</div>
+		{{end}}
+		<form action="/login" method="POST">
+			<input type="text" name="username" placeholder="Username" required autocomplete="username">
+			<input type="password" name="password" placeholder="Password" required autocomplete="current-password">
+			<button type="submit">Sign In</button>
 		</form>
 	</div>
 </body>
@@ -140,7 +175,7 @@ func (d *Dashboard) loginForm(w http.ResponseWriter) {
 `
 	w.Header().Set("Content-Type", "text/html")
 	tmpl := template.Must(template.New("login").Parse(tmplStr))
-	tmpl.Execute(w, nil)
+	tmpl.Execute(w, errorMsg)
 }
 
 func (d *Dashboard) authenticate(w http.ResponseWriter, r *http.Request) bool {
@@ -220,8 +255,11 @@ func (d *Dashboard) getUsageStats() ([]UsageStat, error) {
 		var count int64
 		d.db.Model(&db.UsageLog{}).Where("token_id = ?", token.ID).Count(&count)
 
-		var lastUsed time.Time
-		d.db.Model(&db.UsageLog{}).Where("token_id = ?", token.ID).Order("created_at DESC").First(&lastUsed)
+		var lastLog db.UsageLog
+		lastUsed := time.Time{}
+		if err := d.db.Model(&db.UsageLog{}).Where("token_id = ?", token.ID).Order("created_at DESC").First(&lastLog).Error; err == nil {
+			lastUsed = lastLog.CreatedAt
+		}
 
 		stats = append(stats, UsageStat{
 			TokenName: token.Name,
@@ -231,28 +269,4 @@ func (d *Dashboard) getUsageStats() ([]UsageStat, error) {
 	}
 
 	return stats, nil
-}
-
-func (d *Dashboard) Run(addr string) error {
-	if d.adminUser == "" {
-		d.adminUser = "admin"
-	}
-	if d.adminPass == "" {
-		d.adminPass = os.Getenv("ADMIN_PASSWORD")
-		if d.adminPass == "" {
-			d.adminPass = "admin123"
-		}
-	}
-
-	if d.templateDir == "" {
-		d.templateDir = "./templates"
-	}
-
-	http.HandleFunc("/", d.HandleHome)
-	http.HandleFunc("/login", d.HandleLogin)
-	http.HandleFunc("/create-token", d.HandleCreateToken)
-	http.HandleFunc("/revoke-token", d.HandleRevokeToken)
-
-	log.Printf("Starting admin dashboard on %s", addr)
-	return http.ListenAndServe(addr, nil)
 }

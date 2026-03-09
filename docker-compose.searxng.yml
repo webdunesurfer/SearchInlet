@@ -25,7 +25,24 @@ services:
       - redis
     restart: always
 
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    network_mode: "host"
+
 networks:
   searxng:
     ipam:
       driver: default
+
+volumes:
+  caddy_data:
+  caddy_config:

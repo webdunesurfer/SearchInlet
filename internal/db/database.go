@@ -25,13 +25,20 @@ type UsageLog struct {
 	CreatedAt time.Time
 }
 
+type LoginAttempt struct {
+	ID        uint      `gorm:"primaryKey"`
+	IP        string    `gorm:"index;not null"`
+	Success   bool      `gorm:"not null"`
+	CreatedAt time.Time `gorm:"index"`
+}
+
 func OpenDB(dbPath string) (*gorm.DB, error) {
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
 
-	err = db.AutoMigrate(&Token{}, &UsageLog{})
+	err = db.AutoMigrate(&Token{}, &UsageLog{}, &LoginAttempt{})
 	if err != nil {
 		return nil, err
 	}
