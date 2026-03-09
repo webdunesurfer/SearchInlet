@@ -21,10 +21,10 @@ type Server struct {
 
 // SearchArgs defines the input for the search tool
 type SearchArgs struct {
-	Query     string   `json:"query" jsonschema:"description=The search query"`
-	Limit     int      `json:"limit,omitempty" jsonschema:"description=Maximum number of results (default 10),minimum=1,maximum=50"`
-	Engines   []string `json:"engines,omitempty" jsonschema:"description=Specific search engines to use"`
-	MaxTokens int      `json:"max_tokens,omitempty" jsonschema:"description=Maximum tokens for the combined results (default 2000)"`
+	Query     string   `json:"query" jsonschema:"description:The search query"`
+	Limit     int      `json:"limit,omitempty" jsonschema:"description:Maximum number of results (default 10),minimum:1,maximum:50"`
+	Engines   []string `json:"engines,omitempty" jsonschema:"description:Specific search engines to use"`
+	MaxTokens int      `json:"max_tokens,omitempty" jsonschema:"description:Maximum tokens for the combined results (default 2000)"`
 }
 
 // NewServer initializes the MCP server with SearXNG and Optimizer components
