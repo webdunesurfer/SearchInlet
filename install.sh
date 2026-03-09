@@ -81,7 +81,7 @@ echo -e "\n${BLUE}Verifying SearXNG availability...${NC}"
 echo "Waiting for SearXNG to boot (10 seconds)..."
 sleep 10
 
-if curl -s -G --data-urlencode 'q=test' --data-urlencode 'format=json' http://localhost:8080/search | grep -q "test"; then
+if curl -s -G --data-urlencode 'q=test' --data-urlencode 'format=json' http://localhost:8088/search | grep -q "test"; then
     echo -e "${GREEN}SearXNG is up and responding to JSON API requests!${NC}"
 else
     echo -e "${RED}Warning: SearXNG might not be ready yet. Check logs with: docker compose -f docker-compose.searxng.yml logs searxng${NC}"
@@ -90,7 +90,7 @@ fi
 INSTALL_DIR=$(pwd)
 
 echo -e "\n${GREEN}🎉 Installation Complete!${NC}"
-echo -e "You can start the MCP server locally with: \n  cd $INSTALL_DIR && SEARXNG_URL=http://localhost:8080/search ./bin/mcp-server-linux"
+echo -e "You can start the MCP server locally with: \n  cd $INSTALL_DIR && SEARXNG_URL=http://localhost:8088/search HTTP_PORT=8080 TRANSPORT_MODE=admin ./bin/mcp-server-linux"
 echo -e "\nOr connect your AI Agent via SSH:"
 echo "{
   \"mcpServers\": {
@@ -98,7 +98,7 @@ echo "{
       \"command\": \"ssh\",
       \"args\": [
         \"user@your-server-ip\",
-        \"SEARXNG_URL=http://localhost:8080/search $INSTALL_DIR/bin/mcp-server-linux\"
+        \"SEARXNG_URL=http://localhost:8088/search $INSTALL_DIR/bin/mcp-server-linux\"
       ]
     }
   }

@@ -77,7 +77,7 @@ Since this is typically deployed on a remote server, you connect to it via an SS
       "command": "ssh",
       "args": [
         "user@your-server-ip",
-        "SEARXNG_URL=http://localhost:8080/search /path/to/SearchInlet/bin/mcp-server-linux"
+        "SEARXNG_URL=http://localhost:8088/search /path/to/SearchInlet/bin/mcp-server-linux"
       ]
     }
   }

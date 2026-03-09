@@ -17,7 +17,7 @@ import (
 func main() {
 	searxngURL := os.Getenv("SEARXNG_URL")
 	if searxngURL == "" {
-		searxngURL = "https://searxng.be/search"
+		searxngURL = "http://localhost:8088/search"
 		log.Printf("SEARXNG_URL not set, defaulting to %s", searxngURL)
 	}
 
