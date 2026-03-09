@@ -36,6 +36,7 @@ type DashboardData struct {
 	TotalTokens  int
 	ErrorMessage string
 	SuccessToken string
+	HostURL      string
 }
 
 type UsageStat struct {
@@ -70,8 +71,17 @@ func (d *Dashboard) HandleHome(w http.ResponseWriter, r *http.Request) {
 
 	data := DashboardData{}
 	
+	// Determine the base URL for the instructions
+	scheme := "https"
+	if r.TLS == nil && !strings.Contains(r.Header.Get("X-Forwarded-Proto"), "https") {
+		scheme = "http"
+	}
+	data.HostURL = scheme + "://" + r.Host
+
+	// Check for recently created token cookie
 	if cookie, err := r.Cookie("token_created"); err == nil {
 		data.SuccessToken = cookie.Value
+		// Expire the cookie immediately
 		http.SetCookie(w, &http.Cookie{
 			Name:   "token_created",
 			Value:  "",
@@ -104,6 +114,7 @@ func (d *Dashboard) HandleHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *Dashboard) HandleLogin(w http.ResponseWriter, r *http.Request) {
+	// Extract IP (handling potential proxy headers if needed later)
 	ip := strings.Split(r.RemoteAddr, ":")[0]
 
 	if d.ll.IsBanned(ip) {

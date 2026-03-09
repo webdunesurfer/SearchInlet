@@ -39,9 +39,26 @@
 		
 		{{if .SuccessToken}}
 		<div class="alert alert-success">
-			<strong>Token successfully created!</strong><br>
-			Please copy this token now. It will not be shown again for security reasons:<br><br>
-			<div class="token-value">{{.SuccessToken}}</div>
+			<strong style="font-size: 18px;">✅ Token successfully created!</strong><br><br>
+			1. Copy your token immediately (it won't be shown again):<br>
+			<div class="token-value" style="margin: 10px 0; font-size: 16px; font-weight: bold;">{{.SuccessToken}}</div>
+			
+			2. Use this URL for your AI Agent's SSE connection:<br>
+			<div class="token-value" style="margin: 10px 0; background: #eef; color: #333;">{{.HostURL}}/sse</div>
+
+			3. Example MCP Config for Cursor / Claude Desktop:<br>
+<pre style="background: #282c34; color: #abb2bf; padding: 15px; border-radius: 8px; font-size: 13px; overflow-x: auto;">
+{
+  "mcpServers": {
+    "searchinlet": {
+      "url": "{{.HostURL}}/sse",
+      "headers": {
+        "Authorization": "Bearer {{.SuccessToken}}"
+      }
+    }
+  }
+}
+</pre>
 		</div>
 		{{end}}
 
