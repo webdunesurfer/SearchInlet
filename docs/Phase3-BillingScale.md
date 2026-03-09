@@ -8,7 +8,8 @@ The goal of Phase 3 is to monetize the service and ensure high availability for 
 - [ ] Automatic suspension of service for exhausted quotas.
 
 ## 3.2 Advanced LLM Optimization (`internal/distillation`)
-- [ ] **Distillation:** Use a small local model (e.g., Llama 3 via `ollama`) to summarize results before sending to the Agent.
+- [ ] **Distillation:** Summarize results before sending to the Agent.
+- [ ] Implement provider abstraction to **support both Local LLMs (Ollama) and External APIs (OpenAI/Anthropic)** based on user preference or cost tiers.
 - [ ] **Semantic Reranking:** Improve search relevance by reranking results using embeddings.
 
 ## 3.3 High Availability & Scaling
