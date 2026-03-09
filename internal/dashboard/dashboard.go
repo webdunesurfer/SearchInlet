@@ -5,6 +5,7 @@ import (
 	"embed"
 	"encoding/hex"
 	"html/template"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -48,6 +49,8 @@ func NewDashboard(db *gorm.DB, tm *auth.TokenManager, adminUser, adminPass strin
 	rand.Read(bytes)
 	sessionToken := hex.EncodeToString(bytes)
 
+	log.Printf("Initializing Dashboard with Admin User: %s (Password length: %d)", adminUser, len(adminPass))
+
 	return &Dashboard{
 		db:           db,
 		tm:           tm,
@@ -67,10 +70,8 @@ func (d *Dashboard) HandleHome(w http.ResponseWriter, r *http.Request) {
 
 	data := DashboardData{}
 	
-	// Check for recently created token cookie
 	if cookie, err := r.Cookie("token_created"); err == nil {
 		data.SuccessToken = cookie.Value
-		// Expire the cookie immediately
 		http.SetCookie(w, &http.Cookie{
 			Name:   "token_created",
 			Value:  "",
@@ -103,10 +104,10 @@ func (d *Dashboard) HandleHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *Dashboard) HandleLogin(w http.ResponseWriter, r *http.Request) {
-	// Extract IP (handling potential proxy headers if needed later)
 	ip := strings.Split(r.RemoteAddr, ":")[0]
 
 	if d.ll.IsBanned(ip) {
+		log.Printf("Login blocked: IP %s is banned", ip)
 		http.Error(w, "Too many failed attempts. Please try again later.", http.StatusTooManyRequests)
 		return
 	}
@@ -115,7 +116,10 @@ func (d *Dashboard) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		user := r.FormValue("username")
 		pass := r.FormValue("password")
 
+		log.Printf("Login attempt from %s - User: %s | Expected: %s", ip, user, d.adminUser)
+
 		if user == d.adminUser && pass == d.adminPass {
+			log.Printf("Login success for user: %s", user)
 			d.ll.LogAttempt(ip, true)
 			http.SetCookie(w, &http.Cookie{
 				Name:     "admin_session",
@@ -129,6 +133,7 @@ func (d *Dashboard) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		log.Printf("Login failed for user: %s", user)
 		d.ll.LogAttempt(ip, false)
 		d.loginForm(w, "Invalid credentials")
 		return
