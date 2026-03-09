@@ -28,20 +28,15 @@ The VPS is used for "real-world" integration and multi-user testing.
 - **Key Test:** `go test ./internal/searxng/...` and `go test ./internal/optimizer/...`.
 - **VPS Test:** Deploy Phase 1 as a single-binary MCP server and connect to it using an SSH tunnel or local port forwarding.
 
-### Phase 2: User & Service Layer
-- **Goal:** Multi-tenant security and management.
-- **Key Test:** Mocked PostgreSQL/Redis tests for API key validation and rate-limiting.
-- **VPS Test:** Deploy the dashboard and API gateway. Verify that unauthorized keys are rejected and that usage stats are correctly recorded in the database.
+### Phase 2: Access Control & Admin Layer
+- **Goal:** Secure the gateway with tokens and rate limits.
+- **Key Test:** `go test ./internal/auth/...` to ensure token validation and rate-limit logic blocks unauthorized/excessive requests.
+- **VPS Test:** Deploy the dashboard and API gateway. Verify that unauthorized keys are rejected.
 
-### Phase 3: Billing & Scale
-- **Goal:** Monetization and high availability.
-- **Key Test:** Automated billing cycle simulation (Stripe webhooks).
-- **VPS Test:** Load testing using a tool like `k6` to simulate high concurrent usage, ensuring the system doesn't crash or leak memory under stress.
-
-### Phase 4: Search Infrastructure Scaling
-- **Goal:** Unblockable search backend via proxy pools and provider abstraction.
-- **Key Test:** `go test` for `internal/search` with mocked providers ensuring business logic remains decoupled.
-- **VPS Test:** End-to-end integration test verifying that outbound requests from SearXNG to search engines are successfully routing through the configured proxy pool.
+### Phase 3: Local Distillation
+- **Goal:** Context optimization using local LLMs.
+- **Key Test:** Mocked Ollama responses to verify the chunking and extraction regex/parsing logic in `internal/distillation`.
+- **VPS Test:** End-to-end integration test verifying that a search query correctly pipes through SearXNG, gets chunked, gets summarized by a local Ollama model, and is returned via MCP.
 
 ---
 

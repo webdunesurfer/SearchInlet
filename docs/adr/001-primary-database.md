@@ -1,7 +1,7 @@
 # ADR 001: Selection of Primary Database
 
 ## Status
-Accepted
+Deprecated (Replaced by single-tenant SQLite strategy)
 
 ## Context
 SearchInlet is evolving from a standalone local gateway into a multi-tenant SaaS platform. We need a reliable storage solution to persist critical business data, specifically:

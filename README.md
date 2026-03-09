@@ -1,6 +1,6 @@
 # SearchInlet 🌊
 
-**SearchInlet** is a high-performance, SaaS-ready **MCP (Model Context Protocol)** Gateway for **SearXNG**. It provides AI Agents with a secure, LLM-optimized interface for searching the internet, featuring advanced distillation, token management, and multi-tenant authentication.
+**SearchInlet** is a high-performance, self-hosted **MCP (Model Context Protocol)** Gateway for **SearXNG**. It provides AI Agents with a secure, LLM-optimized interface for searching the internet, featuring advanced distillation, token management, and simple access control.
 
 ---
 
@@ -11,15 +11,15 @@
 *   **LLM Optimized:** 
     *   **Sanitization:** Strips boilerplate, HTML, and scripts for clean context.
     *   **Truncation:** Token-aware trimming using `tiktoken` to fit your model's context window.
-    *   **Distillation:** Intelligent relevance scoring and snippet ranking.
-*   **SaaS Ready:** (WIP) Built-in support for API Keys, Rate Limiting, and Usage Statistics.
+    *   **Local Distillation:** (WIP) Intelligent relevance scoring and snippet extraction using local Ollama models (e.g. Qwen, Llama).
+*   **Self-Hosted Utility:** Designed to be run on your own VPS. Includes a simple Admin UI for generating access tokens and setting basic rate limits (SQLite-backed).
 *   **High Performance:** Written in Go for low-latency concurrent processing.
 
 ---
 
 ## 🛠 Architecture
 
-SearchInlet acts as a bridge between your AI Agent and search backends.
+SearchInlet acts as a bridge between your AI Agent and a local search backend.
 
 ```mermaid
 graph LR
@@ -30,7 +30,7 @@ graph LR
         SI_MCP[MCP Server Layer]
         SI_Auth[Auth & Rate Limiting]
         SI_Proc[Optimization Pipeline]
-        SI_DB[(Database)]
+        SI_DB[(SQLite Database)]
         SI_LLM((Local LLM<br>Ollama/Qwen))
     end
 ```
@@ -43,10 +43,9 @@ Detailed architecture can be found in [docs/Architecture.md](docs/Architecture.m
 
 The project is being developed in three primary phases:
 
-1.  **[Phase 1: Core Foundation](docs/Phase1-Core.md)** - Basic MCP gateway, SearXNG client, and sanitization logic.
-2.  **[Phase 2: User & Service Layer](docs/Phase2-ServiceLayer.md)** - Auth, Rate-limiting, DB persistence, and User Dashboard.
-3.  **[Phase 3: Billing & Scale](docs/Phase3-BillingScale.md)** - Stripe integration, advanced distillation (Ollama), and global scaling.
-4.  **[Phase 4: Search Infrastructure Scaling](docs/Phase4-SearchScaling.md)** - Search backend abstraction, proxy pools, and telemetry.
+1.  **[Phase 1: Core Foundation](docs/Phase1-Core.md)** - Basic MCP gateway, SearXNG client, and sanitization logic. (✅ Completed)
+2.  **[Phase 2: Access Control & Admin Layer](docs/Phase2-AccessControl.md)** - SQLite DB, Token generation, SSE transport, and simple Admin UI.
+3.  **[Phase 3: Local Distillation](docs/Phase3-Distillation.md)** - Advanced context optimization using small local LLMs via Ollama.
 
 ---
 

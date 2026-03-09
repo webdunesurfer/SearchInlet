@@ -1,7 +1,7 @@
 # ADR 003: Dual Database Strategy (PostgreSQL + SQLite)
 
 ## Status
-Accepted
+Deprecated (Replaced by single-tenant SQLite strategy)
 
 ## Context
 SearchInlet needs a relational database to store Users, API Keys, and Usage Statistics. We evaluated options like PostgreSQL, SQLite, and in-memory stores. 

@@ -1,7 +1,7 @@
 # ADR 005: Search Backend Provider Abstraction and Scaling Strategy
 
 ## Status
-Accepted
+Deprecated (Replaced by single-tenant utility focus; proxy pools not required)
 
 ## Context
 SearchInlet currently relies on a single, locally hosted SearXNG instance. While excellent for privacy and initial development, relying on a single IP address to scrape major search engines (Google, DuckDuckGo) is not viable for a multi-tenant SaaS. As query volume increases, search engines will inevitably block the server's IP address with rate limits (`429 Too Many Requests`) or CAPTCHAs.
