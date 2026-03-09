@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"embed"
 	"html/template"
 	"log"
 	"net/http"
@@ -12,6 +13,9 @@ import (
 	"github.com/webdunesurfer/SearchInlet/internal/db"
 	"gorm.io/gorm"
 )
+
+//go:embed templates/*.html
+var dashboardFS embed.FS
 
 type Dashboard struct {
 	db          *gorm.DB
@@ -65,7 +69,12 @@ func (d *Dashboard) HandleHome(w http.ResponseWriter, r *http.Request) {
 	stats, _ := d.getUsageStats()
 	data.UsageStats = stats
 
-	tmpl, _ := template.ParseFiles(d.templateDir + "/dashboard.html")
+	tmpl := template.New("dashboard")
+	tmpl, err := template.ParseFS(dashboardFS, "templates/dashboard.html")
+	if err != nil {
+		http.Error(w, "Template error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 	tmpl.Execute(w, data)
 }
 
