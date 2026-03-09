@@ -46,12 +46,13 @@ graph LR
 This is the "Brain" of SearchInlet, responsible for making results "LLM-Ready":
 
 1.  **Sanitization:** Strips HTML, JS, CSS, and boilerplate using `bluemonday` and `goquery`.
-2.  **Distillation:** 
-    *   **Snippet Ranking:** Scores and re-ranks snippets based on query relevance.
-    *   **Context Extraction:** Identifies and extracts key facts or entities.
-3.  **Truncation:** 
-    *   **Token Counting:** Uses `tiktoken-go` to accurately count tokens for various LLM models (GPT-4, Claude 3, etc.).
+2.  **Truncation:** 
+    *   **Token Counting:** Uses `tiktoken-go` to accurately count tokens.
     *   **Budget Management:** Truncates results to fit within a specified "token budget" provided by the Agent.
+3.  **Distillation (Phase 3):** 
+    *   *Why use an LLM inside a tool built for LLMs?* When an Agent requests information, raw web scraping can easily return 50,000+ tokens of noisy data. Passing this to a premium model (like GPT-4o or Claude 3.5 Sonnet) is slow, expensive, and dilutes the model's attention.
+    *   SearchInlet uses a fast, cheap secondary model (like a local Llama 3 via Ollama, or `gpt-4o-mini`) as a filter. It reads the massive raw data and extracts only the factual, relevant signals into a dense, 500-token summary. 
+    *   This saves the user massive amounts on API costs, prevents context-window overflow, and dramatically increases the primary Agent's speed and accuracy.
 
 ---
 
