@@ -1,25 +1,23 @@
+# SearXNG settings - Production Ready
 use_default_settings: true
 
 general:
   debug: false
   instance_name: "SearchInlet SearXNG"
-
-enabled_plugins:
-  - 'Hash plugin'
-  - 'Self-contained snippets'
-  - 'Tracker URL remover'
-
-bot_detection:
-  enabled: false
+  donation_url: false
+  contact_url: false
 
 search:
   safe_search: 0
   autocomplete: ""
+  formats:
+    - html
+    - json
 
 server:
   port: 8080
   bind_address: "0.0.0.0"
-  secret_key: "SEARCHINLET_SECRET_KEY_REPLACE_ME"
+  secret_key: "searchinlet-extremely-secure-and-long-secret-key-12345"
   base_url: http://localhost:8080/
   image_proxy: true
 
@@ -30,16 +28,9 @@ engines:
   - name: google
     engine: google
     shortcut: g
-
   - name: duckduckgo
     engine: duckduckgo
     shortcut: ddg
-
   - name: bing
     engine: bing
     shortcut: b
-
-# Enable JSON output format for API
-formats:
-  - html
-  - json
