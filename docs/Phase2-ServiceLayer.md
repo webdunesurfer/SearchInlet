@@ -20,3 +20,9 @@ The goal of Phase 2 is to move from a standalone gateway to a SaaS-ready service
 - [ ] Track query volume, token usage (input/output), and latency.
 - [ ] Export stats for dashboard visualization.
 - [ ] Aggregation logic for daily/monthly usage reports.
+
+## 2.5 Verification & Testing
+- [ ] **API Auth Tests:** Verify that queries without valid API keys fail.
+- [ ] **Rate-Limit Testing:** Automated script to flood the server and confirm 429 responses.
+- [ ] **User Database Integrity:** Integration tests for key creation/revocation/usage tracking.
+- [ ] **Dashboard Smoke Test:** Confirm user login and key management functionality on the VPS-hosted dashboard.

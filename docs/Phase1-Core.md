@@ -20,3 +20,9 @@ The goal of Phase 1 is to build a functional MCP-to-SearXNG gateway that provide
 ## 1.4 Infrastructure
 - [ ] Dockerfile for easy deployment of the SearchInlet gateway.
 - [ ] Basic CI/CD (GitHub Actions) for linting and building Go binaries.
+
+## 1.5 Verification & Testing
+- [ ] **Unit Tests:** 100% coverage for `internal/optimizer` (sanitization, truncation logic).
+- [ ] **Integration Test:** Scripted search against a real SearXNG instance using `go test`.
+- [ ] **Manual Verification:** Use `npx @modelcontextprotocol/inspector` on the local binary.
+- [ ] **VPS Deployment:** Deploy the Phase 1 Docker container to `194.163.160.234` and verify connectivity via MCP-over-SSE (or SSH tunnel).

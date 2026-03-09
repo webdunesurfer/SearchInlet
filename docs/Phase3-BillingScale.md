@@ -20,3 +20,9 @@ The goal of Phase 3 is to monetize the service and ensure high availability for 
 - [ ] Prometheus metrics for all service components.
 - [ ] Grafana dashboards for operational health and business metrics.
 - [ ] Sentry (or equivalent) for error tracking.
+
+## 3.5 Verification & Testing
+- [ ] **Billing Cycle Test:** Stripe webhook simulation to verify automatic account suspension when tokens run out.
+- [ ] **Reranking Benchmarks:** Measure quality improvements of distilled results vs raw snippets.
+- [ ] **Load Testing:** Sustain 10,000 queries per hour on the VPS to stress-test Redis and PostgreSQL.
+- [ ] **Global SSE Test:** Verify that the MCP server correctly handles SSE streaming to multiple remote clients.
