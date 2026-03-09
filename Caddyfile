@@ -1,8 +1,8 @@
 {
-    email your-email@example.com
+    email {$ADMIN_EMAIL:your-email@example.com}
 }
 
-searchinlet.com {
+{$DOMAIN:localhost} {
     # Reverse proxy to the SearchInlet Docker container
     reverse_proxy searchinlet:8080
 

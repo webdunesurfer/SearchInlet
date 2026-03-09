@@ -39,18 +39,34 @@ if [ ! -f "docker-compose.searxng.yml" ]; then
     cd SearchInlet
 fi
 
-# 3. Generate Secrets
+# 3. Configuration
 if [ ! -f .env ]; then
+    echo -e "\n${BLUE}Configuring your SearchInlet instance...${NC}"
+    
+    # Domain setup
+    read -p "Enter your domain name (e.g., search.example.com) or press Enter for localhost: " DOMAIN
+    if [ -z "$DOMAIN" ]; then
+        DOMAIN="localhost"
+    fi
+
+    read -p "Enter your admin email (for SSL certificates): " ADMIN_EMAIL
+    if [ -z "$ADMIN_EMAIL" ]; then
+        ADMIN_EMAIL="admin@example.com"
+    fi
+
     echo -e "\n${BLUE}Generating secure credentials...${NC}"
     SEARXNG_SECRET=$(openssl rand -hex 32)
     ADMIN_PASSWORD=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 12)
     
-    echo "SEARXNG_SECRET=${SEARXNG_SECRET}" > .env
+    echo "DOMAIN=${DOMAIN}" > .env
+    echo "ADMIN_EMAIL=${ADMIN_EMAIL}" >> .env
+    echo "SEARXNG_SECRET=${SEARXNG_SECRET}" >> .env
     echo "ADMIN_USER=admin" >> .env
     echo "ADMIN_PASSWORD=${ADMIN_PASSWORD}" >> .env
-    echo -e "${GREEN}Created .env file with new secret key and admin credentials.${NC}"
+    echo -e "${GREEN}Created .env file with your configurations.${NC}"
 else
-    echo -e "\n${GREEN}Found existing .env file. Using existing secrets.${NC}"
+    echo -e "\n${GREEN}Found existing .env file. Using existing configurations.${NC}"
+    DOMAIN=$(grep DOMAIN .env | cut -d '=' -f2)
     ADMIN_PASSWORD=$(grep ADMIN_PASSWORD .env | cut -d '=' -f2)
 fi
 
@@ -73,21 +89,26 @@ echo -e "\n${BLUE}Verifying stack availability...${NC}"
 echo "Waiting for services to boot (15 seconds)..."
 sleep 15
 
-# Verify SearXNG internally (from host to container port)
+# Verify SearXNG internally
 if curl -s -G --data-urlencode 'q=test' --data-urlencode 'format=json' http://localhost:8888/search | grep -q "test"; then
     echo -e "${GREEN}Backend services are healthy!${NC}"
 else
     echo -e "${RED}Warning: Services might not be ready yet. Check logs with: docker compose -f docker-compose.searxng.yml logs${NC}"
 fi
 
+PROTOCOL="https"
+if [ "$DOMAIN" == "localhost" ]; then
+    PROTOCOL="http"
+fi
+
 echo -e "\n${GREEN}🎉 Installation Complete!${NC}"
 echo -e "${BLUE}--------------------------------------------------${NC}"
-echo -e "  Admin Dashboard: ${GREEN}https://searchinlet.com${NC}"
+echo -e "  Admin Dashboard: ${GREEN}${PROTOCOL}://${DOMAIN}${NC}"
 echo -e "  Username:        ${GREEN}admin${NC}"
 echo -e "  Password:        ${GREEN}${ADMIN_PASSWORD}${NC}"
 echo -e "${BLUE}--------------------------------------------------${NC}"
 
 echo -e "\n${BLUE}🚀 How to connect your AI Agent (Cursor / Claude):${NC}"
 echo -e "\n${GREEN}SSE (Modern/Recommended)${NC}"
-echo -e "Use the URL: ${BLUE}https://searchinlet.com/sse${NC}"
+echo -e "Use the URL: ${BLUE}${PROTOCOL}://${DOMAIN}/sse${NC}"
 echo -e "Add Header:  ${BLUE}Authorization: Bearer sk-YOUR_TOKEN_FROM_DASHBOARD${NC}"

@@ -55,6 +55,9 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
     networks:
       - searxng
     depends_on:
