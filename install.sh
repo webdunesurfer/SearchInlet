@@ -69,7 +69,7 @@ docker run --rm -v "$(pwd):/app" -w /app golang:1.24-alpine sh -c "
     apk add --no-cache git && \
     git config --global --add safe.directory /app && \
     go mod download && \
-    CGO_ENABLED=0 GOOS=linux go build -o bin/mcp-server-linux ./cmd/mcp-server
+    CGO_ENABLED=0 GOOS=linux go build -buildvcs=false -o bin/mcp-server-linux ./cmd/mcp-server
 "
 
 chmod +x bin/mcp-server-linux
