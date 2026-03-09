@@ -212,7 +212,7 @@ func (d *Dashboard) HandleCreateToken(w http.ResponseWriter, r *http.Request) {
 			name = "Token " + time.Now().Format("2006-01-02 15:04:05")
 		}
 
-		token, err := d.tm.CreateToken(name)
+		plaintext, _, err := d.tm.CreateToken(name)
 		if err != nil {
 			http.Error(w, "Failed to create token: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -220,7 +220,7 @@ func (d *Dashboard) HandleCreateToken(w http.ResponseWriter, r *http.Request) {
 
 		http.SetCookie(w, &http.Cookie{
 			Name:   "token_created",
-			Value:  token.Value,
+			Value:  plaintext,
 			MaxAge: 60,
 			Path:   "/",
 		})

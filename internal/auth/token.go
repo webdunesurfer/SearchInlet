@@ -2,6 +2,7 @@ package auth
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"time"
@@ -22,6 +23,7 @@ func NewTokenManager(db *gorm.DB, limitPerDay int) *TokenManager {
 	}
 }
 
+// GenerateToken creates a new random secure string
 func GenerateToken() (string, error) {
 	bytes := make([]byte, 32)
 	if _, err := rand.Read(bytes); err != nil {
@@ -30,28 +32,36 @@ func GenerateToken() (string, error) {
 	return "sk-" + hex.EncodeToString(bytes), nil
 }
 
-func (tm *TokenManager) CreateToken(name string) (*db.Token, error) {
-	value, err := GenerateToken()
+// HashToken returns the SHA-256 hash of a token string
+func HashToken(token string) string {
+	hash := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(hash[:])
+}
+
+func (tm *TokenManager) CreateToken(name string) (string, *db.Token, error) {
+	plaintext, err := GenerateToken()
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	token := &db.Token{
 		Name:   name,
-		Value:  value,
+		Value:  HashToken(plaintext), // Store only the hash
 		Active: true,
 	}
 
 	if err := tm.db.Create(token).Error; err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
-	return token, nil
+	return plaintext, token, nil
 }
 
-func (tm *TokenManager) ValidateToken(value string) (*db.Token, error) {
+func (tm *TokenManager) ValidateToken(plaintext string) (*db.Token, error) {
+	hashedValue := HashToken(plaintext)
+	
 	var token db.Token
-	if err := tm.db.Where("value = ? AND active = ?", value, true).First(&token).Error; err != nil {
+	if err := tm.db.Where("value = ? AND active = ?", hashedValue, true).First(&token).Error; err != nil {
 		return nil, fmt.Errorf("invalid or expired token")
 	}
 
@@ -103,4 +113,3 @@ func (tm *TokenManager) LogUsage(tokenID uint, endpoint string) error {
 	}
 	return tm.db.Create(log).Error
 }
-
