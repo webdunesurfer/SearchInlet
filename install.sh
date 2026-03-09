@@ -53,8 +53,8 @@ fi
 echo -e "\n${BLUE}Setting up SearXNG configurations...${NC}"
 mkdir -p searxng
 cp searxng-settings.yml searxng/settings.yml
-# Fix permissions for Docker volume
-chmod -R 777 searxng
+# Use Docker to fix permissions as root since the folder might be owned by root from previous runs
+docker run --rm -v "$(pwd):/data" alpine chmod -R 777 /data/searxng
 
 # 5. Start SearXNG Backend
 echo -e "\n${BLUE}Starting SearXNG backend via Docker Compose...${NC}"
