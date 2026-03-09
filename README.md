@@ -96,8 +96,8 @@ If you prefer not to expose the server via HTTPS, you can still connect via SSH:
     "searchinlet": {
       "command": "ssh",
       "args": [
-        "vkh@194.163.160.234",
-        "SEARXNG_URL=http://localhost:8088/search /home/vkh/SearchInlet/bin/mcp-server-linux"
+        "user@your-server-ip",
+        "SEARXNG_URL=http://localhost:8088/search /home/user/SearchInlet/bin/mcp-server-linux"
       ]
     }
   }

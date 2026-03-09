@@ -114,7 +114,7 @@ echo "{
     \"searchinlet\": {
       \"command\": \"ssh\",
       \"args\": [
-        \"vkh@194.163.160.234\",
+        \"user@your-server-ip\",
         \"SEARXNG_URL=http://localhost:8088/search $INSTALL_DIR/bin/mcp-server-linux\"
       ]
     }
