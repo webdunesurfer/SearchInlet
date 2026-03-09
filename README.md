@@ -41,23 +41,40 @@ The project is being developed in three primary phases:
 
 ---
 
-## 🏃 Quick Start (Local Development)
+## 🏃 Quick Start (Linux / Server Deployment)
 
 ### Prerequisites
-*   Go 1.22+
-*   A running [SearXNG](https://docs.searxng.org/) instance (or use a public one for testing).
+*   Docker & Docker Compose installed.
 
 ### Installation
+Deploying the SearXNG backend and building the MCP server takes just one command.
+
 ```bash
 git clone https://github.com/webdunesurfer/SearchInlet.git
 cd SearchInlet
-go mod download
+./install.sh
 ```
 
-### Build and Run
-```bash
-go build -o bin/mcp-server ./cmd/mcp-server
-./bin/mcp-server
+The script will automatically:
+1. Generate a secure `SEARXNG_SECRET`.
+2. Boot a local, privacy-respecting SearXNG instance.
+3. Cross-compile the Go MCP server binary (no local Go installation required).
+
+### Connecting your AI Agent (Cursor / Claude Desktop)
+Since this is typically deployed on a remote server, you connect to it via an SSH tunnel in your Agent's MCP settings:
+
+```json
+{
+  "mcpServers": {
+    "searchinlet": {
+      "command": "ssh",
+      "args": [
+        "user@your-server-ip",
+        "SEARXNG_URL=http://localhost:8080/search /path/to/SearchInlet/bin/mcp-server-linux"
+      ]
+    }
+  }
+}
 ```
 
 ---
