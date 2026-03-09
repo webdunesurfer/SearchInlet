@@ -1,43 +1,12 @@
-# SearXNG settings
-
+# SearXNG settings - Official Minimal Base
 use_default_settings: true
-
-general:
-  debug: false
-  instance_name: "SearchInlet SearXNG"
-  donation_url: false
-  contact_url: false
-
+server:
+  secret_key: "search-inlet-very-secret-and-safe-key-v1"
+  limiter: false
+  image_proxy: true
+redis:
+  url: redis://redis:6379/0
 search:
-  safe_search: 0
-  autocomplete: ""
   formats:
     - html
     - json
-
-server:
-  port: 8080
-  bind_address: "0.0.0.0"
-  secret_key: "searchinlet-extremely-secure-and-long-secret-key-12345"
-  base_url: http://localhost:8080/
-  image_proxy: true
-
-ui:
-  static_use_hash: true
-
-engines:
-  - name: duckduckgo
-    engine: duckduckgo
-    shortcut: ddg
-
-# Mandatory sections for some versions
-outgoing:
-  request_timeout: 2.0
-  max_request_timeout: 10.0
-  pool_connections: 100
-  pool_maxsize: 10
-
-enabled_plugins:
-  - 'Hash plugin'
-  - 'Self-contained snippets'
-  - 'Tracker URL remover'
