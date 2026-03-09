@@ -10,12 +10,13 @@ SearchInlet sits between AI Agents (the MCP Client) and a local SearXNG instance
 
 ```mermaid
 graph LR
-    Agent[AI Agent / MCP Client] <--> SI[SearchInlet Gateway]
+    Agent[AI Agent / MCP Client] <--> Caddy[Caddy Reverse Proxy<br>HTTPS/SSL]
+    Caddy <--> SI[SearchInlet Gateway]
     SI <--> SX[SearXNG Backend]
     
     subgraph "SearchInlet Internal"
         SI_MCP[MCP Server Layer]
-        SI_Auth[Auth & Rate Limiting]
+        SI_Auth[Auth & Brute Force Protection]
         SI_Proc[Optimization Pipeline]
         SI_Client[SearXNG Client]
         SI_DB[(SQLite Database)]
