@@ -39,14 +39,20 @@ if [ ! -f "docker-compose.searxng.yml" ]; then
     cd SearchInlet
 fi
 
-# 3. Generate Secret Key
+# 3. Generate Secrets
 if [ ! -f .env ]; then
-    echo -e "\n${BLUE}Generating secure SEARXNG_SECRET...${NC}"
-    SECRET_KEY=$(openssl rand -hex 32)
-    echo "SEARXNG_SECRET=${SECRET_KEY}" > .env
-    echo -e "${GREEN}Created .env file with a new secret key.${NC}"
+    echo -e "\n${BLUE}Generating secure credentials...${NC}"
+    SEARXNG_SECRET=$(openssl rand -hex 32)
+    # Generate a random 12-character alphanumeric password
+    ADMIN_PASSWORD=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 12)
+    
+    echo "SEARXNG_SECRET=${SEARXNG_SECRET}" > .env
+    echo "ADMIN_USER=admin" >> .env
+    echo "ADMIN_PASSWORD=${ADMIN_PASSWORD}" >> .env
+    echo -e "${GREEN}Created .env file with new secret key and admin credentials.${NC}"
 else
     echo -e "\n${GREEN}Found existing .env file. Using existing secrets.${NC}"
+    ADMIN_PASSWORD=$(grep ADMIN_PASSWORD .env | cut -d '=' -f2)
 fi
 
 # 4. Setup SearXNG Configuration
@@ -90,7 +96,14 @@ fi
 INSTALL_DIR=$(pwd)
 
 echo -e "\n${GREEN}🎉 Installation Complete!${NC}"
-echo -e "You can start the MCP server locally with: \n  cd $INSTALL_DIR && SEARXNG_URL=http://localhost:8088/search HTTP_PORT=8080 TRANSPORT_MODE=admin ./bin/mcp-server-linux"
+echo -e "${BLUE}--------------------------------------------------${NC}"
+echo -e "  Admin Dashboard: ${GREEN}https://searchinlet.com${NC}"
+echo -e "  Username:        ${GREEN}admin${NC}"
+echo -e "  Password:        ${GREEN}${ADMIN_PASSWORD}${NC}"
+echo -e "${BLUE}--------------------------------------------------${NC}"
+echo -e "\nTo start the server now:"
+echo -e "  cd $INSTALL_DIR && source .env && SEARXNG_URL=http://localhost:8088/search TRANSPORT_MODE=admin HTTP_PORT=8080 ./bin/mcp-server-linux"
+
 echo -e "\nOr connect your AI Agent via SSH:"
 echo "{
   \"mcpServers\": {
