@@ -4,7 +4,7 @@ The goal of Phase 1 is to build a functional MCP-to-SearXNG gateway that provide
 
 ## 1.1 SearXNG Integration (`internal/searxng`)
 - [x] Implement a robust JSON client for the SearXNG API.
-- [ ] Support for multiple SearXNG backend URLs (load balancing/failover).
+- [x] Support for multiple SearXNG backend URLs (load balancing/failover).
 - [x] Configuration for specific search engines (Google, Bing, etc.) via environment variables.
 
 ## 1.2 Optimization Pipeline (`internal/optimizer`)

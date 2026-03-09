@@ -34,7 +34,13 @@ func NewServer(name, version, searxngURL string) (*Server, error) {
 		Version: version,
 	}, nil)
 
-	searxngClient := searxng.NewClient(searxngURL)
+	// Split URLs by comma
+	urls := strings.Split(searxngURL, ",")
+	for i := range urls {
+		urls[i] = strings.TrimSpace(urls[i])
+	}
+
+	searxngClient := searxng.NewClient(urls)
 	sanitizer := optimizer.NewSanitizer()
 	truncator, err := optimizer.NewTruncator("gpt-4") // Default model
 	if err != nil {

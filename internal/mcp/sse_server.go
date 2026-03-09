@@ -26,7 +26,13 @@ func NewSSEServer(name, version, searxngURL string, tm *auth.TokenManager) (*SSE
 		Version: version,
 	}, nil)
 
-	searxngClient := searxng.NewClient(searxngURL)
+	// Split URLs by comma
+	urls := strings.Split(searxngURL, ",")
+	for i := range urls {
+		urls[i] = strings.TrimSpace(urls[i])
+	}
+
+	searxngClient := searxng.NewClient(urls)
 	sanitizer := optimizer.NewSanitizer()
 	truncator, err := optimizer.NewTruncator("gpt-4")
 	if err != nil {

@@ -38,7 +38,7 @@ func TestClient_Search(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient(server.URL)
+	client := NewClient([]string{server.URL})
 	resp, err := client.Search(context.Background(), "test query", &SearchOptions{
 		Engines: []string{"google", "bing"},
 	})

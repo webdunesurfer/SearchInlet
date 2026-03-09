@@ -17,7 +17,7 @@ func TestClient_Integration(t *testing.T) {
 		t.Skip("Skipping integration test: SEARXNG_URL environment variable is not set")
 	}
 
-	client := NewClient(searxngURL)
+	client := NewClient([]string{searxngURL})
 
 	// Perform a real search
 	resp, err := client.Search(context.Background(), "Model Context Protocol", &SearchOptions{

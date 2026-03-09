@@ -7,7 +7,7 @@
 ## 🚀 Key Features
 
 *   **MCP Native:** Built using the official Go MCP SDK for seamless integration with Claude Desktop, Cursor, and other AI Agents.
-*   **SearXNG Powered:** Aggregates results from 70+ search engines while maintaining privacy.
+*   **SearXNG Powered:** Aggregates results from 70+ search engines while maintaining privacy. Supports multiple backend URLs with automatic failover.
 *   **LLM Optimized:** 
     *   **Sanitization:** Strips boilerplate, HTML, and scripts for clean context.
     *   **Truncation:** Token-aware trimming using `tiktoken` to fit your model's context window.
