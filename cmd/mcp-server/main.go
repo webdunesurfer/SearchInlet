@@ -51,12 +51,12 @@ func main() {
 
 		adminUser := os.Getenv("ADMIN_USER")
 		if adminUser == "" {
-			adminUser = "admin"
+			log.Fatalf("ADMIN_USER environment variable is required in admin/sse mode")
 		}
 
 		adminPass := os.Getenv("ADMIN_PASSWORD")
 		if adminPass == "" {
-			adminPass = "admin123"
+			log.Fatalf("ADMIN_PASSWORD environment variable is required in admin/sse mode")
 		}
 
 		dash := dashboard.NewDashboard(database, tokenManager, adminUser, adminPass)
