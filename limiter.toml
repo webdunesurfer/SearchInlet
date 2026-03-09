@@ -1,9 +1,0 @@
-# SearXNG limiter configuration
-
-[bot_detection]
-# Whether bot detection is enabled
-enabled = false
-
-[ratelimit]
-# Whether rate limiting is enabled
-enabled = false
