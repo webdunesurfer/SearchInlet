@@ -24,6 +24,6 @@ The goal of Phase 1 is to build a functional MCP-to-SearXNG gateway that provide
 
 ## 1.5 Verification & Testing
 - [x] **Unit Tests:** 100% coverage for `internal/optimizer` (sanitization, truncation logic).
-- [ ] **Integration Test:** Scripted search against a real SearXNG instance using `go test`.
+- [x] **Integration Test:** Scripted search against a real SearXNG instance using `go test`.
 - [x] **Manual Verification:** Use `npx @modelcontextprotocol/inspector` on the local binary.
 - [x] **VPS Deployment:** Deploy the Phase 1 Docker container to a remote VPS and verify connectivity via MCP-over-SSE (or SSH tunnel).
