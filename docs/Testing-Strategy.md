@@ -11,7 +11,7 @@ This document outlines the testing process for **SearchInlet** to ensure that ea
 *   **MCP Inspector:** Use the official `npx @modelcontextprotocol/inspector` to manually verify tool calls.
 *   **Local SearXNG:** A local Dockerized instance of SearXNG for rapid iteration.
 
-### 1.2 Remote Testing (VPS: 194.163.160.234)
+### 1.2 Remote Testing (VPS)
 The VPS is used for "real-world" integration and multi-user testing.
 
 *   **Deployment Method:** GitHub Actions push Docker images to the VPS or pull from a private registry.
