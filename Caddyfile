@@ -3,8 +3,8 @@
 }
 
 searchinlet.com {
-    # Reverse proxy to the SearchInlet Go application
-    reverse_proxy localhost:8080
+    # Reverse proxy to the SearchInlet Docker container
+    reverse_proxy searchinlet:8080
 
     # Optional: Log requests
     log {

@@ -1,0 +1,20 @@
+[Unit]
+Description=SearchInlet MCP Server
+After=network.target
+
+[Service]
+Type=simple
+User=vkh
+WorkingDirectory=/home/vkh/SearchInlet
+EnvironmentFile=/home/vkh/SearchInlet/.env
+Environment=SEARXNG_URL=http://localhost:8088/search
+Environment=TRANSPORT_MODE=admin
+Environment=HTTP_PORT=8080
+ExecStart=/home/vkh/SearchInlet/bin/mcp-server-linux
+Restart=always
+RestartSec=5
+StandardOutput=append:/home/vkh/SearchInlet/server.log
+StandardError=append:/home/vkh/SearchInlet/server.log
+
+[Install]
+WantedBy=multi-user.target

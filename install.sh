@@ -9,7 +9,7 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}🌊 Welcome to the SearchInlet Installer${NC}"
-echo "This script will deploy SearXNG and build the MCP Server."
+echo "This script will deploy the entire SearchInlet stack via Docker."
 
 # 1. Check dependencies
 if ! command -v docker &> /dev/null; then
@@ -43,7 +43,6 @@ fi
 if [ ! -f .env ]; then
     echo -e "\n${BLUE}Generating secure credentials...${NC}"
     SEARXNG_SECRET=$(openssl rand -hex 32)
-    # Generate a random 12-character alphanumeric password
     ADMIN_PASSWORD=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 12)
     
     echo "SEARXNG_SECRET=${SEARXNG_SECRET}" > .env
@@ -59,41 +58,27 @@ fi
 echo -e "\n${BLUE}Setting up SearXNG configurations...${NC}"
 mkdir -p searxng
 cp searxng-settings.yml searxng/settings.yml
-# Use Docker to fix permissions as root since the folder might be owned by root from previous runs
-docker run --rm -v "$(pwd):/data" alpine chmod -R 777 /data/searxng
+# Ensure SQLite DB file exists so Docker can mount it
+touch searchinlet.db
 
-# 5. Start SearXNG Backend
-echo -e "\n${BLUE}Starting SearXNG backend via Docker Compose...${NC}"
-docker compose -f docker-compose.searxng.yml --env-file .env up -d
+# Use Docker to fix permissions
+docker run --rm -v "$(pwd):/data" alpine chmod -R 777 /data/searxng /data/searchinlet.db
 
-# 6. Build the MCP Server using Docker
-echo -e "\n${BLUE}Building the SearchInlet MCP Server...${NC}"
-mkdir -p bin
+# 5. Start the Stack
+echo -e "\n${BLUE}Starting all services via Docker Compose...${NC}"
+docker compose -f docker-compose.searxng.yml up -d --build
 
-# We use the official golang image to compile the binary so the host doesn't need Go installed
-# Building with CGO_ENABLED=0 produces a static binary that works on any Linux system
-docker run --rm -v "$(pwd):/app" -w /app golang:1.24-alpine sh -c "
-    apk add --no-cache git && \
-    git config --global --add safe.directory /app && \
-    go mod download && \
-    CGO_ENABLED=0 GOOS=linux go build -buildvcs=false -o bin/mcp-server-linux ./cmd/mcp-server && \
-    chmod 777 bin/mcp-server-linux
-"
+# 6. Verify Deployment
+echo -e "\n${BLUE}Verifying stack availability...${NC}"
+echo "Waiting for services to boot (15 seconds)..."
+sleep 15
 
-echo -e "${GREEN}Build complete! Binary located at: bin/mcp-server-linux${NC}"
-
-# 7. Verify Deployment
-echo -e "\n${BLUE}Verifying SearXNG availability...${NC}"
-echo "Waiting for SearXNG to boot (10 seconds)..."
-sleep 10
-
-if curl -s -G --data-urlencode 'q=test' --data-urlencode 'format=json' http://localhost:8088/search | grep -q "test"; then
-    echo -e "${GREEN}SearXNG is up and responding to JSON API requests!${NC}"
+# Verify SearXNG internally (from host to container port)
+if curl -s -G --data-urlencode 'q=test' --data-urlencode 'format=json' http://localhost:8888/search | grep -q "test"; then
+    echo -e "${GREEN}Backend services are healthy!${NC}"
 else
-    echo -e "${RED}Warning: SearXNG might not be ready yet. Check logs with: docker compose -f docker-compose.searxng.yml logs searxng${NC}"
+    echo -e "${RED}Warning: Services might not be ready yet. Check logs with: docker compose -f docker-compose.searxng.yml logs${NC}"
 fi
-
-INSTALL_DIR=$(pwd)
 
 echo -e "\n${GREEN}🎉 Installation Complete!${NC}"
 echo -e "${BLUE}--------------------------------------------------${NC}"
@@ -103,20 +88,6 @@ echo -e "  Password:        ${GREEN}${ADMIN_PASSWORD}${NC}"
 echo -e "${BLUE}--------------------------------------------------${NC}"
 
 echo -e "\n${BLUE}🚀 How to connect your AI Agent (Cursor / Claude):${NC}"
-echo -e "\n${GREEN}Option A: SSE (Recommended)${NC}"
+echo -e "\n${GREEN}SSE (Modern/Recommended)${NC}"
 echo -e "Use the URL: ${BLUE}https://searchinlet.com/sse${NC}"
-echo -e "And add the header: ${BLUE}Authorization: Bearer sk-YOUR_TOKEN_FROM_DASHBOARD${NC}"
-
-echo -e "\n${GREEN}Option B: SSH (Legacy)${NC}"
-echo -e "Copy this into your MCP settings:"
-echo "{
-  \"mcpServers\": {
-    \"searchinlet\": {
-      \"command\": \"ssh\",
-      \"args\": [
-        \"user@your-server-ip\",
-        \"SEARXNG_URL=http://localhost:8088/search $INSTALL_DIR/bin/mcp-server-linux\"
-      ]
-    }
-  }
-}"
+echo -e "Add Header:  ${BLUE}Authorization: Bearer sk-YOUR_TOKEN_FROM_DASHBOARD${NC}"
