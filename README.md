@@ -78,7 +78,7 @@ The script will automatically:
 {
   "mcpServers": {
     "searchinlet": {
-      "url": "https://searchinlet.com/sse",
+      "url": "https://your-server.com/sse",
       "headers": {
         "Authorization": "Bearer sk-YOUR_TOKEN_HERE"
       }
