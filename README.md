@@ -96,4 +96,5 @@ npx @modelcontextprotocol/inspector ./bin/mcp-server
 ---
 
 ## 📄 License
-MIT License - see [LICENSE](LICENSE) for details. (Coming soon)
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+See the [LICENSE](LICENSE) file for details.
