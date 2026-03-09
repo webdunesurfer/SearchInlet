@@ -25,6 +25,14 @@ SearchInlet acts as a bridge between your AI Agent and search backends.
 graph LR
     Agent[AI Agent / MCP Client] <--> SI[SearchInlet Gateway]
     SI <--> SX[SearXNG Backend]
+    
+    subgraph "SearchInlet Internal"
+        SI_MCP[MCP Server Layer]
+        SI_Auth[Auth & Rate Limiting]
+        SI_Proc[Optimization Pipeline]
+        SI_DB[(Database)]
+        SI_LLM((Local LLM<br>Ollama/Qwen))
+    end
 ```
 
 Detailed architecture can be found in [docs/Architecture.md](docs/Architecture.md).

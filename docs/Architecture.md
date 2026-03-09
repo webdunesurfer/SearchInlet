@@ -18,6 +18,14 @@ graph LR
         SI_Auth[Auth & Rate Limiting]
         SI_Proc[Optimization Pipeline]
         SI_Client[SearXNG Client]
+        SI_DB[(Database<br>PostgreSQL/SQLite)]
+        SI_LLM((Local LLM<br>Ollama/Qwen))
+        
+        SI_MCP --> SI_Auth
+        SI_Auth --> SI_DB
+        SI_MCP --> SI_Proc
+        SI_Proc --> SI_Client
+        SI_Proc -.-> SI_LLM
     end
 ```
 
