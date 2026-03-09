@@ -44,7 +44,7 @@ Detailed architecture can be found in [docs/Architecture.md](docs/Architecture.m
 The project is being developed in three primary phases:
 
 1.  **[Phase 1: Core Foundation](docs/Phase1-Core.md)** - Basic MCP gateway, SearXNG client, and sanitization logic. (✅ Completed)
-2.  **[Phase 2: Access Control & Admin Layer](docs/Phase2-AccessControl.md)** - SQLite DB, Token generation, SSE transport, and simple Admin UI.
+2.  **[Phase 2: Access Control & Admin Layer](docs/Phase2-AccessControl.md)** - SQLite DB, Token generation, SSE transport, and simple Admin UI. (✅ Completed)
 3.  **[Phase 3: Local Distillation](docs/Phase3-Distillation.md)** - Advanced context optimization using small local LLMs via Ollama.
 
 ---
@@ -78,7 +78,7 @@ The script will automatically:
 {
   "mcpServers": {
     "searchinlet": {
-      "url": "https://your-server.com/sse",
+      "url": "https://searchinlet.com/sse",
       "headers": {
         "Authorization": "Bearer sk-YOUR_TOKEN_HERE"
       }
