@@ -1,9 +1,11 @@
 package db
 
 import (
+	"time"
+
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"time"
+	_ "modernc.org/sqlite"
 )
 
 type Token struct {

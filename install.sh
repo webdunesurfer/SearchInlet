@@ -65,14 +65,14 @@ echo -e "\n${BLUE}Building the SearchInlet MCP Server...${NC}"
 mkdir -p bin
 
 # We use the official golang image to compile the binary so the host doesn't need Go installed
-# Building with CGO_ENABLED=1 requires a Debian-based image for glibc compatibility
-docker run --rm -v "$(pwd):/app" -w /app golang:1.24-bookworm sh -c "
-    apt-get update && apt-get install -y git gcc libc6-dev && \
+# Building with CGO_ENABLED=0 produces a static binary that works on any Linux system
+docker run --rm -v "$(pwd):/app" -w /app golang:1.24-alpine sh -c "
+    apk add --no-cache git && \
     git config --global --add safe.directory /app && \
     go mod download && \
-    CGO_ENABLED=1 GOOS=linux go build -buildvcs=false -o bin/mcp-server-linux ./cmd/mcp-server && \
+    CGO_ENABLED=0 GOOS=linux go build -buildvcs=false -o bin/mcp-server-linux ./cmd/mcp-server && \
     chmod 777 bin/mcp-server-linux
-" && rm -rf /var/lib/apt/lists/*
+"
 
 echo -e "${GREEN}Build complete! Binary located at: bin/mcp-server-linux${NC}"
 
