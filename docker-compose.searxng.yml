@@ -20,7 +20,7 @@ services:
       - ./searxng:/etc/searxng:rw
     environment:
       - SEARXNG_BASE_URL=http://localhost:8080/
-      - SEARXNG_SECRET=77e1517076610d1cb9bbd9ea9214cef62b4e68684925ceb34a097fbf651d80ad
+      - SEARXNG_SECRET=${SEARXNG_SECRET}
     depends_on:
       - redis
     restart: always
