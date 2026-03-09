@@ -1,0 +1,37 @@
+use_default_settings: true
+
+general:
+  debug: false
+  instance_name: "SearchInlet SearXNG"
+
+search:
+  safe_search: 0
+  autocomplete: ""
+
+server:
+  port: 8080
+  bind_address: "0.0.0.0"
+  secret_key: "SEARCHINLET_SECRET_KEY_REPLACE_ME"
+  base_url: http://localhost:8080/
+  image_proxy: true
+
+ui:
+  static_use_hash: true
+
+engines:
+  - name: google
+    engine: google
+    shortcut: g
+
+  - name: duckduckgo
+    engine: duckduckgo
+    shortcut: ddg
+
+  - name: bing
+    engine: bing
+    shortcut: b
+
+# Enable JSON output format for API
+formats:
+  - html
+  - json

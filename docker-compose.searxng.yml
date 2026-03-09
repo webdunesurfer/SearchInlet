@@ -1,0 +1,30 @@
+services:
+  redis:
+    container_name: redis
+    image: redis:alpine
+    command: redis-server --save "" --appendonly no
+    networks:
+      - searxng
+    tmpfs:
+      - /var/lib/redis
+    restart: always
+
+  searxng:
+    container_name: searxng
+    image: searxng/searxng:latest
+    networks:
+      - searxng
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+    depends_on:
+      - redis
+    restart: always
+
+networks:
+  searxng:
+    ipam:
+      driver: default
