@@ -1,36 +1,20 @@
-# SearXNG settings - Production Ready
-use_default_settings: true
-
+# SearXNG settings
 general:
   debug: false
   instance_name: "SearchInlet SearXNG"
-  donation_url: false
-  contact_url: false
-
-search:
-  safe_search: 0
-  autocomplete: ""
-  formats:
-    - html
-    - json
 
 server:
   port: 8080
   bind_address: "0.0.0.0"
-  secret_key: "searchinlet-extremely-secure-and-long-secret-key-12345"
-  base_url: http://localhost:8080/
-  image_proxy: true
+  secret_key: "extremely-secret-key-for-search-inlet-production"
 
-ui:
-  static_use_hash: true
+search:
+  formats:
+    - html
+    - json
 
 engines:
   - name: google
     engine: google
-    shortcut: g
   - name: duckduckgo
     engine: duckduckgo
-    shortcut: ddg
-  - name: bing
-    engine: bing
-    shortcut: b
