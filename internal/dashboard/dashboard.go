@@ -1,42 +1,60 @@
 package dashboard
 
 import (
+	"context"
 	"crypto/rand"
 	"embed"
 	"encoding/hex"
+	"encoding/json"
 	"html/template"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/webdunesurfer/SearchInlet/internal/auth"
 	"github.com/webdunesurfer/SearchInlet/internal/db"
+	"github.com/webdunesurfer/SearchInlet/internal/distiller"
 	"gorm.io/gorm"
 )
 
 //go:embed templates/*.html
 var dashboardFS embed.FS
 
+type DownloadStatus struct {
+	Model      string  `json:"model"`
+	Status     string  `json:"status"`
+	Percentage float64 `json:"percentage"`
+	Active     bool    `json:"active"`
+}
+
 type Dashboard struct {
-	db           *gorm.DB
-	tm           *auth.TokenManager
-	ll           *auth.LoginLimiter
-	templateDir  string
-	adminUser    string
-	adminPass    string
-	sessionToken string
+	db               *gorm.DB
+	tm               *auth.TokenManager
+	ll               *auth.LoginLimiter
+	templateDir      string
+	adminUser        string
+	adminPass        string
+	sessionToken     string
+	distiller        *distiller.OllamaClient
+	downloadProgress map[string]DownloadStatus
+	progressMu       sync.RWMutex
 }
 
 type DashboardData struct {
-	Tokens       []db.Token
-	UsageStats   []UsageStat
-	ActiveTokens int
-	TotalTokens  int
-	ErrorMessage string
-	SuccessToken string
-	HostURL      string
+	Tokens              []db.Token
+	UsageStats          []UsageStat
+	ActiveTokens        int
+	TotalTokens         int
+	ErrorMessage        string
+	SuccessToken        string
+	HostURL             string
+	DistillationEnabled bool
+	DistillationModel   string
+	DistillationPrompt  string
+	DownloadedModels    []string
 }
 
 type UsageStat struct {
@@ -45,7 +63,7 @@ type UsageStat struct {
 	LastUsed  time.Time
 }
 
-func NewDashboard(db *gorm.DB, tm *auth.TokenManager, adminUser, adminPass string) *Dashboard {
+func NewDashboard(db *gorm.DB, tm *auth.TokenManager, adminUser, adminPass, ollamaURL string) *Dashboard {
 	bytes := make([]byte, 32)
 	rand.Read(bytes)
 	sessionToken := hex.EncodeToString(bytes)
@@ -53,14 +71,34 @@ func NewDashboard(db *gorm.DB, tm *auth.TokenManager, adminUser, adminPass strin
 	log.Printf("Initializing Dashboard with Admin User: %s (Password length: %d)", adminUser, len(adminPass))
 
 	return &Dashboard{
-		db:           db,
-		tm:           tm,
-		ll:           auth.NewLoginLimiter(db),
-		templateDir:  "./templates",
-		adminUser:    adminUser,
-		adminPass:    adminPass,
-		sessionToken: sessionToken,
+		db:               db,
+		tm:               tm,
+		ll:               auth.NewLoginLimiter(db),
+		templateDir:      "./templates",
+		adminUser:        adminUser,
+		adminPass:        adminPass,
+		sessionToken:     sessionToken,
+		distiller:        distiller.NewOllamaClient(ollamaURL),
+		downloadProgress: make(map[string]DownloadStatus),
 	}
+}
+
+func (d *Dashboard) getSetting(key, defaultValue string) string {
+	var setting db.GlobalSetting
+	if err := d.db.Where("key = ?", key).First(&setting).Error; err != nil {
+		return defaultValue
+	}
+	return setting.Value
+}
+
+func (d *Dashboard) saveSetting(key, value string) error {
+	var setting db.GlobalSetting
+	if err := d.db.Where("key = ?", key).First(&setting).Error; err != nil {
+		setting = db.GlobalSetting{Key: key, Value: value}
+		return d.db.Create(&setting).Error
+	}
+	setting.Value = value
+	return d.db.Save(&setting).Error
 }
 
 func (d *Dashboard) HandleHome(w http.ResponseWriter, r *http.Request) {
@@ -104,13 +142,129 @@ func (d *Dashboard) HandleHome(w http.ResponseWriter, r *http.Request) {
 	stats, _ := d.getUsageStats()
 	data.UsageStats = stats
 
+	// Distillation Settings
+	data.DistillationEnabled = d.getSetting("distillation_enabled", "false") == "true"
+	data.DistillationModel = d.getSetting("distillation_model", "qwen2.5:3b")
+	data.DistillationPrompt = d.getSetting("distillation_prompt", "Summarize and extract the most relevant information from the following search results. Be concise and maintain technical accuracy.")
+
+	// Fetch downloaded models
+	models, err := d.distiller.ListModels(r.Context())
+	if err != nil {
+		log.Printf("Failed to list models: %v", err)
+	} else {
+		data.DownloadedModels = models
+	}
+
 	tmpl := template.New("dashboard")
-	tmpl, err := template.ParseFS(dashboardFS, "templates/dashboard.html")
+	tmpl, err = template.ParseFS(dashboardFS, "templates/dashboard.html")
 	if err != nil {
 		http.Error(w, "Template error: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	tmpl.Execute(w, data)
+}
+
+func (d *Dashboard) HandleSaveSettings(w http.ResponseWriter, r *http.Request) {
+	if !d.authenticate(w, r) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if r.Method != "POST" {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	distillationEnabled := r.FormValue("distillation_enabled") == "on"
+	distillationModel := r.FormValue("distillation_model")
+	distillationPrompt := r.FormValue("distillation_prompt")
+
+	oldModel := d.getSetting("distillation_model", "")
+
+	d.saveSetting("distillation_enabled", strconv.FormatBool(distillationEnabled))
+	d.saveSetting("distillation_model", distillationModel)
+	d.saveSetting("distillation_prompt", distillationPrompt)
+
+	// Trigger pull if model changed or if distillation was just enabled
+	if distillationEnabled && distillationModel != oldModel {
+		log.Printf("Triggering background pull for model: %s", distillationModel)
+		go func(modelName string) {
+			d.progressMu.Lock()
+			d.downloadProgress[modelName] = DownloadStatus{Model: modelName, Status: "Starting...", Active: true}
+			d.progressMu.Unlock()
+
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Minute)
+			defer cancel()
+
+			err := d.distiller.PullModel(ctx, modelName, func(p distiller.PullProgress) {
+				d.progressMu.Lock()
+				status := d.downloadProgress[modelName]
+				status.Status = p.Status
+				if p.Total > 0 {
+					status.Percentage = float64(p.Completed) / float64(p.Total) * 100
+				}
+				d.downloadProgress[modelName] = status
+				d.progressMu.Unlock()
+			})
+
+			d.progressMu.Lock()
+			if err != nil {
+				log.Printf("ERROR: Failed to pull model %s: %v", modelName, err)
+				delete(d.downloadProgress, modelName)
+			} else {
+				log.Printf("SUCCESS: Model %s pulled successfully", modelName)
+				status := d.downloadProgress[modelName]
+				status.Active = false
+				status.Percentage = 100
+				status.Status = "Completed"
+				d.downloadProgress[modelName] = status
+				
+				// Keep completed status for 30 seconds before clearing
+				go func(m string) {
+					time.Sleep(30 * time.Second)
+					d.progressMu.Lock()
+					delete(d.downloadProgress, m)
+					d.progressMu.Unlock()
+				}(modelName)
+			}
+			d.progressMu.Unlock()
+		}(distillationModel)
+	}
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func (d *Dashboard) HandleDownloadStatus(w http.ResponseWriter, r *http.Request) {
+	if !d.authenticate(w, r) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	d.progressMu.RLock()
+	defer d.progressMu.RUnlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(d.downloadProgress)
+}
+
+func (d *Dashboard) HandleDeleteModel(w http.ResponseWriter, r *http.Request) {
+	if !d.authenticate(w, r) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	modelName := r.URL.Query().Get("model")
+	if modelName == "" {
+		http.Error(w, "Model name required", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("Deleting model: %s", modelName)
+	if err := d.distiller.DeleteModel(r.Context(), modelName); err != nil {
+		log.Printf("Failed to delete model %s: %v", modelName, err)
+	}
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func (d *Dashboard) HandleLogin(w http.ResponseWriter, r *http.Request) {

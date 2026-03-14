@@ -44,7 +44,12 @@ func main() {
 	}
 
 	if transportMode == "sse" || transportMode == "admin" {
-		sseServer, err := mcp.NewSSEServer("SearchInlet", "1.0.0", searxngURL, tokenManager)
+		ollamaURL := os.Getenv("OLLAMA_URL")
+		if ollamaURL == "" {
+			ollamaURL = "http://localhost:11434"
+		}
+
+		sseServer, err := mcp.NewSSEServer("SearchInlet", "1.0.0", searxngURL, tokenManager, database, ollamaURL)
 		if err != nil {
 			log.Fatalf("Failed to create SSE server: %v", err)
 		}
@@ -59,7 +64,7 @@ func main() {
 			log.Fatalf("ADMIN_PASSWORD environment variable is required in admin/sse mode")
 		}
 
-		dash := dashboard.NewDashboard(database, tokenManager, adminUser, adminPass)
+		dash := dashboard.NewDashboard(database, tokenManager, adminUser, adminPass, ollamaURL)
 
 		httpPort := os.Getenv("HTTP_PORT")
 		if httpPort == "" {
@@ -85,6 +90,9 @@ func main() {
 		mux.HandleFunc("/login", dash.HandleLogin)
 		mux.HandleFunc("/create-token", dash.HandleCreateToken)
 		mux.HandleFunc("/revoke-token", dash.HandleRevokeToken)
+		mux.HandleFunc("/save-settings", dash.HandleSaveSettings)
+		mux.HandleFunc("/delete-model", dash.HandleDeleteModel)
+		mux.HandleFunc("/download-status", dash.HandleDownloadStatus)
 
 		srv := &http.Server{
 			Addr:    ":" + httpPort,

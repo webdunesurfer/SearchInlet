@@ -32,13 +32,21 @@ type LoginAttempt struct {
 	CreatedAt time.Time `gorm:"index"`
 }
 
+type GlobalSetting struct {
+	ID        uint      `gorm:"primaryKey"`
+	Key       string    `gorm:"uniqueIndex;not null"`
+	Value     string    `gorm:"not null"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
 func OpenDB(dbPath string) (*gorm.DB, error) {
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
 
-	err = db.AutoMigrate(&Token{}, &UsageLog{}, &LoginAttempt{})
+	err = db.AutoMigrate(&Token{}, &UsageLog{}, &LoginAttempt{}, &GlobalSetting{})
 	if err != nil {
 		return nil, err
 	}

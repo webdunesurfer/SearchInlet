@@ -3,13 +3,17 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/webdunesurfer/SearchInlet/internal/auth"
+	"github.com/webdunesurfer/SearchInlet/internal/db"
+	"github.com/webdunesurfer/SearchInlet/internal/distiller"
 	"github.com/webdunesurfer/SearchInlet/internal/optimizer"
 	"github.com/webdunesurfer/SearchInlet/internal/searxng"
+	"gorm.io/gorm"
 )
 
 type SSEServer struct {
@@ -18,9 +22,11 @@ type SSEServer struct {
 	sanitizer    *optimizer.Sanitizer
 	truncator    *optimizer.Truncator
 	tokenManager *auth.TokenManager
+	distiller    *distiller.OllamaClient
+	db           *gorm.DB
 }
 
-func NewSSEServer(name, version, searxngURL string, tm *auth.TokenManager) (*SSEServer, error) {
+func NewSSEServer(name, version, searxngURL string, tm *auth.TokenManager, database *gorm.DB, ollamaURL string) (*SSEServer, error) {
 	mcpServer := mcp.NewServer(&mcp.Implementation{
 		Name:    name,
 		Version: version,
@@ -45,6 +51,8 @@ func NewSSEServer(name, version, searxngURL string, tm *auth.TokenManager) (*SSE
 		sanitizer:    sanitizer,
 		truncator:    truncator,
 		tokenManager: tm,
+		distiller:    distiller.NewOllamaClient(ollamaURL),
+		db:           database,
 	}
 
 	s.registerTools()
@@ -56,6 +64,14 @@ func (s *SSEServer) registerTools() {
 		Name:        "search",
 		Description: "Search the internet via SearXNG with LLM-optimized output",
 	}, s.handleSearch)
+}
+
+func (s *SSEServer) getSetting(key, defaultValue string) string {
+	var setting db.GlobalSetting
+	if err := s.db.Where("key = ?", key).First(&setting).Error; err != nil {
+		return defaultValue
+	}
+	return setting.Value
 }
 
 func (s *SSEServer) handleSearch(ctx context.Context, req *mcp.CallToolRequest, args SearchArgs) (*mcp.CallToolResult, any, error) {
@@ -98,6 +114,22 @@ func (s *SSEServer) handleSearch(ctx context.Context, req *mcp.CallToolRequest, 
 
 	if len(optimizedSnippets) == 0 {
 		finalText = "No results found for your query."
+	} else {
+		// --- Distillation Logic ---
+		distEnabled := s.getSetting("distillation_enabled", "false") == "true"
+		if distEnabled {
+			log.Printf("Distilling results for query: %s", args.Query)
+			model := s.getSetting("distillation_model", "qwen2.5:3b")
+			prompt := s.getSetting("distillation_prompt", "Summarize and extract the most relevant information from the following search results. Be concise and maintain technical accuracy.")
+			
+			distilled, err := s.distiller.Distill(ctx, model, prompt, finalText)
+			if err != nil {
+				log.Printf("Distillation failed: %v", err)
+				// Fallback to original text if distillation fails
+			} else {
+				finalText = distilled
+			}
+		}
 	}
 
 	return &mcp.CallToolResult{

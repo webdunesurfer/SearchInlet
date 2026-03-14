@@ -34,6 +34,7 @@ services:
       - ./.env:/root/.env
     environment:
       - SEARXNG_URL=http://searxng:8080/search
+      - OLLAMA_URL=http://ollama:11434
       - TRANSPORT_MODE=admin
       - HTTP_PORT=8080
       - DB_PATH=/root/searchinlet.db
@@ -43,6 +44,24 @@ services:
       - searxng
     depends_on:
       - searxng
+      - ollama
+
+  ollama:
+    container_name: ollama
+    image: ollama/ollama:latest
+    restart: always
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - searxng
+    # Uncomment below to enable GPU support (requires nvidia-container-toolkit)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
 
   caddy:
     image: caddy:latest
@@ -71,3 +90,4 @@ networks:
 volumes:
   caddy_data:
   caddy_config:
+  ollama_data:
