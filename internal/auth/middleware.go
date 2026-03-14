@@ -50,7 +50,7 @@ func Middleware(tm *TokenManager) func(http.Handler) http.Handler {
 	}
 }
 
-func GetTokenID(r *http.Request) (uint, bool) {
-	val, ok := r.Context().Value(TokenIDKey).(uint)
+func GetTokenID(ctx context.Context) (uint, bool) {
+	val, ok := ctx.Value(TokenIDKey).(uint)
 	return val, ok
 }

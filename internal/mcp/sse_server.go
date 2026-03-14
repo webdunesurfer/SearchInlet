@@ -148,7 +148,7 @@ func (s *SSEServer) handleSearch(ctx context.Context, req *mcp.CallToolRequest, 
 	metrics.OutputTokens = s.truncator.CountTokens(finalText)
 
 	// Record metrics in background
-	if tokenID, ok := auth.GetTokenID(req.Context()); ok {
+	if tokenID, ok := auth.GetTokenID(ctx); ok {
 		go func() {
 			_ = s.tokenManager.LogUsage(tokenID, "search", metrics)
 		}()
