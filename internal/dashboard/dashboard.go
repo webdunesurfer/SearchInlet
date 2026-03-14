@@ -6,7 +6,6 @@ import (
 	"embed"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
