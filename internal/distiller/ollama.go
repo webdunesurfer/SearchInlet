@@ -152,6 +152,11 @@ func (c *OllamaClient) Distill(ctx context.Context, model, systemPrompt, content
 	if err != nil {
 		return "", err
 	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", c.BaseURL+"/api/generate", bytes.NewBuffer(reqBody))
+	if err != nil {
+		return "", err
+	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.HTTPClient.Do(req)
