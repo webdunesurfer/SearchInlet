@@ -4,6 +4,7 @@
 	<title>SearchInlet Admin</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<style>
+		* { box-sizing: border-box; }
 		body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 40px; background: #f0f2f5; color: #1c1e21; }
 		.container { max-width: 1000px; margin: 0 auto; }
 		h1 { font-size: 28px; margin-bottom: 24px; color: #1c1e21; }
@@ -27,7 +28,8 @@
 		.alert-success { background: #e6f4ea; color: #1e7e34; border-color: #ceead6; }
 		.form-group { margin-bottom: 20px; }
 		.form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; }
-		.form-group input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
+		.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; display: block; }
+		.form-group textarea { resize: vertical; min-height: 100px; font-family: inherit; }
 		.status-badge { padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 700; }
 		.status-active { background: #e6f4ea; color: #1e7e34; }
 		.status-revoked { background: #fbeaea; color: #d93025; }
@@ -164,7 +166,7 @@
 				</div>
 				<div class="form-group">
 					<label for="distillation_model">Ollama Model</label>
-					<select name="distillation_model" id="distillation_model" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; background: white; margin-bottom: 10px;" onchange="toggleCustomModel(this.value)">
+					<select name="distillation_model" id="distillation_model" onchange="toggleCustomModel(this.value)">
 						<option value="qwen2.5:3b" {{if eq .DistillationModel "qwen2.5:3b"}}selected{{end}}>Qwen 2.5 (3B) - Fast & Smart</option>
 						<option value="qwen2.5:1.5b" {{if eq .DistillationModel "qwen2.5:1.5b"}}selected{{end}}>Qwen 2.5 (1.5B) - Ultra Fast</option>
 						<option value="llama3.2:3b" {{if eq .DistillationModel "llama3.2:3b"}}selected{{end}}>Llama 3.2 (3B) - Balanced</option>
@@ -173,12 +175,12 @@
 						<option value="custom" {{if and (ne .DistillationModel "qwen2.5:3b") (ne .DistillationModel "qwen2.5:1.5b") (ne .DistillationModel "llama3.2:3b") (ne .DistillationModel "llama3.2:1b") (ne .DistillationModel "mistral:latest")}}selected{{end}}>Custom Model...</option>
 					</select>
 					<input type="text" name="custom_model" id="custom_model" placeholder="Enter model name (e.g. gemma2:2b)" 
-						style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; display: {{if and (ne .DistillationModel "qwen2.5:3b") (ne .DistillationModel "qwen2.5:1.5b") (ne .DistillationModel "llama3.2:3b") (ne .DistillationModel "llama3.2:1b") (ne .DistillationModel "mistral:latest")}}block{{else}}none{{end}};"
+						style="margin-top: 10px; display: {{if and (ne .DistillationModel "qwen2.5:3b") (ne .DistillationModel "qwen2.5:1.5b") (ne .DistillationModel "llama3.2:3b") (ne .DistillationModel "llama3.2:1b") (ne .DistillationModel "mistral:latest")}}block{{else}}none{{end}};"
 						value="{{if and (ne .DistillationModel "qwen2.5:3b") (ne .DistillationModel "qwen2.5:1.5b") (ne .DistillationModel "llama3.2:3b") (ne .DistillationModel "llama3.2:1b") (ne .DistillationModel "mistral:latest")}}{{.DistillationModel}}{{end}}">
 				</div>
 				<div class="form-group">
 					<label for="distillation_prompt">Distillation System Prompt</label>
-					<textarea name="distillation_prompt" id="distillation_prompt" rows="4" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; font-family: inherit;">{{.DistillationPrompt}}</textarea>
+					<textarea name="distillation_prompt" id="distillation_prompt" rows="4">{{.DistillationPrompt}}</textarea>
 				</div>
 				<button type="submit" class="btn btn-primary">Save Settings</button>
 			</form>
@@ -234,8 +236,6 @@
 								<div style="font-size: 10px; color: #999;">({{.DistillationUsed}} uses)</div>
 							{{else}}
 								<span style="color: #ccc;">-</span>
-							{{if .AvgCompression}}
-							{{end}}
 							{{end}}
 						</td>
 						<td style="text-align: center;">
@@ -260,9 +260,9 @@
 				</tbody>
 			</table>
 		</div>
-		</div>
+	</div>
 
-		<script>
+	<script>
 		function toggleCustomModel(value) {
 			const customInput = document.getElementById('custom_model');
 			if (value === 'custom') {
@@ -302,6 +302,6 @@
 		// Poll every 2 seconds
 		setInterval(updateProgress, 2000);
 		updateProgress();
-		</script>
-		</body>
-		</html>
+	</script>
+</body>
+</html>
