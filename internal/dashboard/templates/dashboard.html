@@ -135,8 +135,13 @@
 
 		<div class="card">
 			<h2>Local Distillation Settings (Ollama)</h2>
-			
-			<div id="download-progress-container" style="display: none; margin-bottom: 24px; background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #dee2e6;">
+
+			<div style="background: #fff3cd; color: #856404; padding: 16px; border-radius: 8px; border: 1px solid #ffeeba; margin-bottom: 24px; font-size: 14px;">
+				<strong>⚠️ Performance Warning:</strong> Local distillation requires significant CPU/RAM. On standard VPS instances, this can take 20-60+ seconds per search. If your AI Agent (e.g. Claude) returns a <code>Request timed out</code> error, please use a faster server or disable distillation.
+			</div>
+
+			<div id="download-progress-container"
+ style="display: none; margin-bottom: 24px; background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #dee2e6;">
 				<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
 					<strong id="download-model-name" style="font-size: 14px; color: #495057;">Downloading Model...</strong>
 					<span id="download-percentage" style="font-size: 14px; font-weight: bold; color: #007bff;">0%</span>
