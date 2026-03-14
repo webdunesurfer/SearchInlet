@@ -200,7 +200,12 @@ func (d *Dashboard) HandleSaveSettings(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Triggering background pull for model: %s", distillationModel)
 		go func(modelName string) {
 			d.progressMu.Lock()
-			d.downloadProgress[modelName] = DownloadStatus{Model: modelName, Status: "Starting...", Active: true}
+			d.downloadProgress[modelName] = DownloadStatus{
+				Model:      modelName,
+				Status:     "Initializing...",
+				Percentage: 0,
+				Active:     true,
+			}
 			d.progressMu.Unlock()
 
 			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Minute)
@@ -212,31 +217,32 @@ func (d *Dashboard) HandleSaveSettings(w http.ResponseWriter, r *http.Request) {
 				status.Status = p.Status
 				if p.Total > 0 {
 					status.Percentage = float64(p.Completed) / float64(p.Total) * 100
+				} else if p.Status == "success" {
+					status.Percentage = 100
 				}
 				d.downloadProgress[modelName] = status
 				d.progressMu.Unlock()
 			})
 
 			d.progressMu.Lock()
+			status := d.downloadProgress[modelName]
 			if err != nil {
 				log.Printf("ERROR: Failed to pull model %s: %v", modelName, err)
-				delete(d.downloadProgress, modelName)
+				status.Status = "Error: " + err.Error()
+				status.Active = false
 			} else {
 				log.Printf("SUCCESS: Model %s pulled successfully", modelName)
-				status := d.downloadProgress[modelName]
 				status.Active = false
 				status.Percentage = 100
 				status.Status = "Completed"
-				d.downloadProgress[modelName] = status
-				
-				// Keep completed status for 30 seconds before clearing
-				go func(m string) {
-					time.Sleep(30 * time.Second)
-					d.progressMu.Lock()
-					delete(d.downloadProgress, m)
-					d.progressMu.Unlock()
-				}(modelName)
 			}
+			d.downloadProgress[modelName] = status
+			d.progressMu.Unlock()
+
+			// Always keep status visible for a while so user sees it finished
+			time.Sleep(30 * time.Second)
+			d.progressMu.Lock()
+			delete(d.downloadProgress, modelName)
 			d.progressMu.Unlock()
 		}(distillationModel)
 	}
