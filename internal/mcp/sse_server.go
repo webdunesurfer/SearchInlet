@@ -18,7 +18,8 @@ import (
 )
 
 type SSEServer struct {
-	mcpServer    *mcp.Server
+	name         string
+	version      string
 	searxng      *searxng.Client
 	sanitizer    *optimizer.Sanitizer
 	truncator    *optimizer.Truncator
@@ -28,11 +29,6 @@ type SSEServer struct {
 }
 
 func NewSSEServer(name, version, searxngURL string, tm *auth.TokenManager, database *gorm.DB, ollamaURL string) (*SSEServer, error) {
-	mcpServer := mcp.NewServer(&mcp.Implementation{
-		Name:    name,
-		Version: version,
-	}, nil)
-
 	// Split URLs by comma
 	urls := strings.Split(searxngURL, ",")
 	for i := range urls {
@@ -46,25 +42,30 @@ func NewSSEServer(name, version, searxngURL string, tm *auth.TokenManager, datab
 		return nil, fmt.Errorf("failed to initialize truncator: %w", err)
 	}
 
-	s := &SSEServer{
-		mcpServer:    mcpServer,
+	return &SSEServer{
+		name:         name,
+		version:      version,
 		searxng:      searxngClient,
 		sanitizer:    sanitizer,
 		truncator:    truncator,
 		tokenManager: tm,
 		distiller:    distiller.NewOllamaClient(ollamaURL),
 		db:           database,
-	}
-
-	s.registerTools()
-	return s, nil
+	}, nil
 }
 
-func (s *SSEServer) registerTools() {
-	mcp.AddTool(s.mcpServer, &mcp.Tool{
+func (s *SSEServer) createServer() *mcp.Server {
+	mcpServer := mcp.NewServer(&mcp.Implementation{
+		Name:    s.name,
+		Version: s.version,
+	}, nil)
+
+	mcp.AddTool(mcpServer, &mcp.Tool{
 		Name:        "search",
 		Description: "Search the internet via SearXNG with LLM-optimized output",
 	}, s.handleSearch)
+
+	return mcpServer
 }
 
 func (s *SSEServer) getSetting(key, defaultValue string) string {
@@ -165,8 +166,10 @@ func (s *SSEServer) handleSearch(ctx context.Context, req *mcp.CallToolRequest, 
 
 func (s *SSEServer) Handler() http.Handler {
 	// Create the official SDK SSE handler
+	// We use a factory function to create a NEW server instance for each connection
+	// to ensure initialization state is isolated.
 	sseHandler := mcp.NewSSEHandler(func(req *http.Request) *mcp.Server {
-		return s.mcpServer
+		return s.createServer()
 	}, nil)
 
 	// Wrap it in our token authentication/rate-limiting middleware
