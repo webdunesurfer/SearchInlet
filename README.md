@@ -11,27 +11,29 @@
 *   **LLM Optimized:** 
     *   **Sanitization:** Strips boilerplate, HTML, and scripts for clean context.
     *   **Truncation:** Token-aware trimming using `tiktoken` to fit your model's context window.
-    *   **Local Distillation:** (WIP) Intelligent relevance scoring and snippet extraction using local Ollama models (e.g. Qwen, Llama).
-*   **Self-Hosted Utility:** Designed to be run on your own VPS. Includes a simple Admin UI for generating access tokens and setting basic rate limits (SQLite-backed).
+    *   **Local Distillation:** Intelligent relevance scoring and snippet extraction using local **Ollama** models (e.g. Qwen, Llama).
+*   **Self-Hosted Utility:** Designed to be run on your own VPS. Includes a simple Admin UI for generating access tokens, setting basic rate limits, and managing local LLM models.
 *   **High Performance:** Written in Go for low-latency concurrent processing.
+*   **Modern Dashboard:** Real-time tracking of model downloads and usage statistics.
 
 ---
 
 ## 🛠 Architecture
 
-SearchInlet acts as a bridge between your AI Agent and a local search backend.
+SearchInlet acts as a bridge between your AI Agent and a local search backend, now featuring a dedicated distillation layer.
 
 ```mermaid
 graph LR
-    Agent[AI Agent / MCP Client] <--> SI[SearchInlet Gateway]
+    Agent[AI Agent / MCP Client] <--> Caddy[Caddy SSL]
+    Caddy <--> SI[SearchInlet Gateway]
     SI <--> SX[SearXNG Backend]
+    SI <--> OL[Ollama Service]
     
     subgraph "SearchInlet Internal"
         SI_MCP[MCP Server Layer]
         SI_Auth[Auth & Rate Limiting]
         SI_Proc[Optimization Pipeline]
         SI_DB[(SQLite Database)]
-        SI_LLM((Local LLM<br>Ollama/Qwen))
     end
 ```
 
@@ -41,11 +43,11 @@ Detailed architecture can be found in [docs/Architecture.md](docs/Architecture.m
 
 ## 📅 Roadmap & Phases
 
-The project is being developed in three primary phases:
+The project has successfully completed its core development phases:
 
 1.  **[Phase 1: Core Foundation](docs/Phase1-Core.md)** - Basic MCP gateway, SearXNG client, and sanitization logic. (✅ Completed)
 2.  **[Phase 2: Access Control & Admin Layer](docs/Phase2-AccessControl.md)** - SQLite DB, Token generation, SSE transport, and simple Admin UI. (✅ Completed)
-3.  **[Phase 3: Local Distillation](docs/Phase3-Distillation.md)** - Advanced context optimization using small local LLMs via Ollama.
+3.  **[Phase 3: Local Distillation](docs/Phase3-Distillation.md)** - Advanced context optimization using small local LLMs via Ollama. (✅ Completed)
 
 ---
 

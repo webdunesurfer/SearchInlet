@@ -13,6 +13,7 @@ graph LR
     Agent[AI Agent / MCP Client] <--> Caddy[Caddy Reverse Proxy<br>HTTPS/SSL]
     Caddy <--> SI[SearchInlet Gateway]
     SI <--> SX[SearXNG Backend]
+    SI <--> OL[Ollama Service]
     
     subgraph "SearchInlet Internal"
         SI_MCP[MCP Server Layer]
@@ -20,13 +21,12 @@ graph LR
         SI_Proc[Optimization Pipeline]
         SI_Client[SearXNG Client]
         SI_DB[(SQLite Database)]
-        SI_LLM((Local LLM<br>Ollama/Qwen))
         
         SI_MCP --> SI_Auth
         SI_Auth --> SI_DB
         SI_MCP --> SI_Proc
         SI_Proc --> SI_Client
-        SI_Proc -.-> SI_LLM
+        SI_Proc <--> OL
     end
 ```
 
@@ -39,40 +39,39 @@ graph LR
 *   **Transport:** Supports both Stdio (for local execution) and SSE (Server-Sent Events) over HTTP for remote agent connections.
 *   **Tools:**
     *   `search(query string, engines []string, limit int)`: Performs a multi-engine search.
-    *   `get_page_content(url string)`: Fetches and optimizes content from a specific URL.
 
 ### 2.2 Access Control & Security (`internal/auth`)
-*   **Token Management:** Static API token generation for authorizing different agents (e.g., "Cursor Token", "CLI Token").
-*   **Rate-Limiting:** Simple SQLite or memory-backed rate limiting to prevent run-away agent loops from draining VPS resources.
-*   **Admin Dashboard:** A lightweight HTML/HTMX interface to manage tokens and view usage.
+*   **Token Management:** Static API token generation (SHA-256 hashed) for authorizing different agents.
+*   **Rate-Limiting:** SQLite-backed rate limiting to prevent run-away agent loops.
+*   **Admin Dashboard:** A responsive HTML interface to manage tokens, global settings, and LLM models.
 
 ### 2.3 SearXNG Client (`internal/searxng`)
-*   **REST Integration:** High-concurrency client for the local SearXNG JSON API.
+*   **REST Integration:** High-concurrency client for the local SearXNG JSON API with multi-backend failover.
 
 ### 2.4 Optimization Pipeline (`internal/optimizer`)
-This is the "Brain" of SearchInlet, responsible for making results "LLM-Ready":
-
-1.  **Sanitization:** Strips HTML, JS, CSS, and boilerplate using `bluemonday` and `goquery`.
-2.  **Truncation:** 
+*   **Sanitization:** Strips HTML, JS, CSS, and boilerplate using `bluemonday` and `goquery`.
+*   **Truncation:** 
     *   **Token Counting:** Uses `tiktoken-go` to accurately count tokens.
-    *   **Budget Management:** Truncates results to fit within a specified "token budget" provided by the Agent.
-3.  **Distillation (Phase 3):** 
-    *   *Why use an LLM inside a tool built for LLMs?* When an Agent requests information, raw web scraping can easily return 50,000+ tokens of noisy data. Passing this to a premium model (like GPT-4o or Claude 3.5 Sonnet) is slow, expensive, and dilutes the model's attention.
-    *   SearchInlet uses a fast, cheap secondary model (like a local Llama 3 or Qwen via Ollama) as a filter. It reads the massive raw data and extracts only the factual, relevant signals into a dense summary. 
-    *   This prevents context-window overflow and dramatically increases the primary Agent's speed and accuracy.
+    *   **Budget Management:** Truncates results to fit within a specified "token budget" provided by the Agent. This ensures that the response is both information-dense and compatible with the Agent's context window.
+
+### 2.5 Distillation Layer (`internal/distiller`)
+*   **Local LLM Integration:** Uses **Ollama** as a local inference engine.
+*   **Intelligence:** Summarizes and extracts high-density factual signals from noisy search results. When enabled, it transforms raw snippets into a concise summary using models like **Qwen 2.5**.
+*   **Efficiency:** By performing local distillation, SearchInlet reduces the total token count by 10x or more before sending data to expensive cloud models like GPT-4, dramatically increasing speed and reducing costs.
+*   **Model Management:** Supports background pulling (with progress tracking) and removal of models directly from the admin dashboard.
 
 ---
 
 ## 3. Data Flow
 
 1.  **Request:** The AI Agent connects via SSE or Stdio and calls the `search` tool.
-2.  **Authorize:** `internal/auth` validates the provided access token against the SQLite database.
+2.  **Authorize:** `internal/auth` validates the provided access token.
 3.  **Fetch:** `internal/searxng` fetches raw results from the local SearXNG instance.
 4.  **Optimize:**
     *   `optimizer.Sanitize()`: Removes noise from raw data.
     *   `optimizer.Truncate()`: Ensures the payload fits the token limit.
-    *   `optimizer.Distill()`: (Optional) Uses local Ollama model to extract key facts.
-5.  **Response:** The MCP Server sends the refined, text-only context back to the Agent.
+    *   `distiller.Distill()`: (Optional) Uses local Ollama model to summarize key facts.
+5.  **Response:** The MCP Server sends the refined, distilled context back to the Agent.
 
 ---
 
