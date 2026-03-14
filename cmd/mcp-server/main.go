@@ -90,6 +90,7 @@ func main() {
 		mux.HandleFunc("/login", dash.HandleLogin)
 		mux.HandleFunc("/create-token", dash.HandleCreateToken)
 		mux.HandleFunc("/revoke-token", dash.HandleRevokeToken)
+		mux.HandleFunc("/clear-stats", dash.HandleClearStats)
 		mux.HandleFunc("/save-settings", dash.HandleSaveSettings)
 		mux.HandleFunc("/delete-model", dash.HandleDeleteModel)
 		mux.HandleFunc("/download-status", dash.HandleDownloadStatus)

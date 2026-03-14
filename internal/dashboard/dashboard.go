@@ -6,6 +6,7 @@ import (
 	"embed"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -58,6 +59,7 @@ type DashboardData struct {
 }
 
 type UsageStat struct {
+	TokenID          uint
 	TokenName        string
 	TotalUses        int64
 	LastUsed         time.Time
@@ -263,6 +265,32 @@ func (d *Dashboard) HandleDownloadStatus(w http.ResponseWriter, r *http.Request)
 	json.NewEncoder(w).Encode(d.downloadProgress)
 }
 
+func (d *Dashboard) HandleClearStats(w http.ResponseWriter, r *http.Request) {
+	if !d.authenticate(w, r) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		http.Error(w, "Token ID required", http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		http.Error(w, "Invalid token ID", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("Clearing statistics for token ID: %d", id)
+	if err := d.db.Where("token_id = ?", id).Delete(&db.UsageLog{}).Error; err != nil {
+		log.Printf("Failed to clear stats: %v", err)
+	}
+
+	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+}
+
 func (d *Dashboard) HandleDeleteModel(w http.ResponseWriter, r *http.Request) {
 	if !d.authenticate(w, r) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -464,6 +492,7 @@ func (d *Dashboard) getUsageStats() ([]UsageStat, error) {
 		}
 
 		stats = append(stats, UsageStat{
+			TokenID:          token.ID,
 			TokenName:        token.Name,
 			TotalUses:        count,
 			LastUsed:         lastUsed,

@@ -225,6 +225,7 @@
 						<th style="text-align: center;">Avg Distill</th>
 						<th style="text-align: center;">Compression</th>
 						<th>Latest Activity</th>
+						<th style="text-align: right;">Action</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -253,11 +254,14 @@
 							<span style="color: #999;">No activity</span>
 							{{end}}
 						</td>
+						<td style="text-align: right;">
+							<a href="/clear-stats?id={{.TokenID}}" class="btn" style="padding: 6px 12px; font-size: 12px; background: #f8f9fa; border: 1px solid #dee2e6; color: #666;" onclick="return confirm('Clear all performance statistics for this token?')">Clear</a>
+						</td>
 					</tr>
 					{{end}}
 					{{if not .UsageStats}}
 					<tr>
-						<td colspan="6" style="text-align: center; padding: 40px; color: #999;">No usage data recorded yet.</td>
+						<td colspan="7" style="text-align: center; padding: 40px; color: #999;">No usage data recorded yet.</td>
 					</tr>
 					{{end}}
 				</tbody>
