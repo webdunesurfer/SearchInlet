@@ -148,7 +148,7 @@ func (d *Dashboard) HandleHome(w http.ResponseWriter, r *http.Request) {
 
 	// Distillation Settings
 	data.DistillationEnabled = d.getSetting("distillation_enabled", "false") == "true"
-	data.DistillationModel = d.getSetting("distillation_model", "qwen2.5:3b")
+	data.DistillationModel = d.getSetting("distillation_model", "qwen2.5:1.5b")
 	data.DistillationPrompt = d.getSetting("distillation_prompt", "Summarize and extract the most relevant information from the following search results. Be concise and maintain technical accuracy.")
 
 	// Fetch downloaded models

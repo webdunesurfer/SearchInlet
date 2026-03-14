@@ -129,7 +129,7 @@ func (s *SSEServer) handleSearch(ctx context.Context, req *mcp.CallToolRequest, 
 		if distEnabled {
 			metrics.DistillationEnabled = true
 			log.Printf("Distilling results for query: %s", args.Query)
-			model := s.getSetting("distillation_model", "qwen2.5:3b")
+			model := s.getSetting("distillation_model", "qwen2.5:1.5b")
 			prompt := s.getSetting("distillation_prompt", "Summarize and extract the most relevant information from the following search results. Be concise and maintain technical accuracy.")
 			
 			distStart := time.Now()

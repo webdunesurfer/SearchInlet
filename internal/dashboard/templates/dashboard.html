@@ -167,16 +167,18 @@
 				<div class="form-group">
 					<label for="distillation_model">Ollama Model</label>
 					<select name="distillation_model" id="distillation_model" onchange="toggleCustomModel(this.value)">
-						<option value="qwen2.5:3b" {{if eq .DistillationModel "qwen2.5:3b"}}selected{{end}}>Qwen 2.5 (3B) - Fast & Smart</option>
 						<option value="qwen2.5:1.5b" {{if eq .DistillationModel "qwen2.5:1.5b"}}selected{{end}}>Qwen 2.5 (1.5B) - Ultra Fast</option>
+						<option value="llama3.2:1b" {{if eq .DistillationModel "llama3.2:1b"}}selected{{end}}>Llama 3.2 (1B) - High Speed</option>
 						<option value="llama3.2:3b" {{if eq .DistillationModel "llama3.2:3b"}}selected{{end}}>Llama 3.2 (3B) - Balanced</option>
-						<option value="llama3.2:1b" {{if eq .DistillationModel "llama3.2:1b"}}selected{{end}}>Llama 3.2 (1B) - Efficient</option>
-						<option value="mistral:latest" {{if eq .DistillationModel "mistral:latest"}}selected{{end}}>Mistral (7B) - High Quality</option>
-						<option value="custom" {{if and (ne .DistillationModel "qwen2.5:3b") (ne .DistillationModel "qwen2.5:1.5b") (ne .DistillationModel "llama3.2:3b") (ne .DistillationModel "llama3.2:1b") (ne .DistillationModel "mistral:latest")}}selected{{end}}>Custom Model...</option>
+						<option value="qwen2.5:3b" {{if eq .DistillationModel "qwen2.5:3b"}}selected{{end}}>Qwen 2.5 (3B) - Smart & Fast</option>
+						<option value="qwen3.5:4b" {{if eq .DistillationModel "qwen3.5:4b"}}selected{{end}}>Qwen 3.5 (4B) - Next Gen</option>
+						<option value="mistral:7b" {{if eq .DistillationModel "mistral:7b"}}selected{{end}}>Mistral (7B) - High Quality</option>
+						<option value="deepseek-r1:7b" {{if eq .DistillationModel "deepseek-r1:7b"}}selected{{end}}>DeepSeek R1 (7B) - Reasoning</option>
+						<option value="custom" {{if and (ne .DistillationModel "qwen2.5:1.5b") (ne .DistillationModel "llama3.2:1b") (ne .DistillationModel "llama3.2:3b") (ne .DistillationModel "qwen2.5:3b") (ne .DistillationModel "qwen3.5:4b") (ne .DistillationModel "mistral:7b") (ne .DistillationModel "deepseek-r1:7b")}}selected{{end}}>Custom Model...</option>
 					</select>
 					<input type="text" name="custom_model" id="custom_model" placeholder="Enter model name (e.g. gemma2:2b)" 
-						style="margin-top: 10px; display: {{if and (ne .DistillationModel "qwen2.5:3b") (ne .DistillationModel "qwen2.5:1.5b") (ne .DistillationModel "llama3.2:3b") (ne .DistillationModel "llama3.2:1b") (ne .DistillationModel "mistral:latest")}}block{{else}}none{{end}};"
-						value="{{if and (ne .DistillationModel "qwen2.5:3b") (ne .DistillationModel "qwen2.5:1.5b") (ne .DistillationModel "llama3.2:3b") (ne .DistillationModel "llama3.2:1b") (ne .DistillationModel "mistral:latest")}}{{.DistillationModel}}{{end}}">
+						style="margin-top: 10px; display: {{if and (ne .DistillationModel "qwen2.5:1.5b") (ne .DistillationModel "llama3.2:1b") (ne .DistillationModel "llama3.2:3b") (ne .DistillationModel "qwen2.5:3b") (ne .DistillationModel "qwen3.5:4b") (ne .DistillationModel "mistral:7b") (ne .DistillationModel "deepseek-r1:7b")}}block{{else}}none{{end}};"
+						value="{{if and (ne .DistillationModel "qwen2.5:1.5b") (ne .DistillationModel "llama3.2:1b") (ne .DistillationModel "llama3.2:3b") (ne .DistillationModel "qwen2.5:3b") (ne .DistillationModel "qwen3.5:4b") (ne .DistillationModel "mistral:7b") (ne .DistillationModel "deepseek-r1:7b")}}{{.DistillationModel}}{{end}}">
 				</div>
 				<div class="form-group">
 					<label for="distillation_prompt">Distillation System Prompt</label>
