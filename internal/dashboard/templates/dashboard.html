@@ -159,13 +159,17 @@
 				</div>
 				<div class="form-group">
 					<label for="distillation_model">Ollama Model</label>
-					<select name="distillation_model" id="distillation_model" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; background: white;">
+					<select name="distillation_model" id="distillation_model" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; background: white; margin-bottom: 10px;" onchange="toggleCustomModel(this.value)">
 						<option value="qwen2.5:3b" {{if eq .DistillationModel "qwen2.5:3b"}}selected{{end}}>Qwen 2.5 (3B) - Fast & Smart</option>
 						<option value="qwen2.5:1.5b" {{if eq .DistillationModel "qwen2.5:1.5b"}}selected{{end}}>Qwen 2.5 (1.5B) - Ultra Fast</option>
 						<option value="llama3.2:3b" {{if eq .DistillationModel "llama3.2:3b"}}selected{{end}}>Llama 3.2 (3B) - Balanced</option>
 						<option value="llama3.2:1b" {{if eq .DistillationModel "llama3.2:1b"}}selected{{end}}>Llama 3.2 (1B) - Efficient</option>
 						<option value="mistral:latest" {{if eq .DistillationModel "mistral:latest"}}selected{{end}}>Mistral (7B) - High Quality</option>
+						<option value="custom" {{if and (ne .DistillationModel "qwen2.5:3b") (ne .DistillationModel "qwen2.5:1.5b") (ne .DistillationModel "llama3.2:3b") (ne .DistillationModel "llama3.2:1b") (ne .DistillationModel "mistral:latest")}}selected{{end}}>Custom Model...</option>
 					</select>
+					<input type="text" name="custom_model" id="custom_model" placeholder="Enter model name (e.g. gemma2:2b)" 
+						style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; display: {{if and (ne .DistillationModel "qwen2.5:3b") (ne .DistillationModel "qwen2.5:1.5b") (ne .DistillationModel "llama3.2:3b") (ne .DistillationModel "llama3.2:1b") (ne .DistillationModel "mistral:latest")}}block{{else}}none{{end}};"
+						value="{{if and (ne .DistillationModel "qwen2.5:3b") (ne .DistillationModel "qwen2.5:1.5b") (ne .DistillationModel "llama3.2:3b") (ne .DistillationModel "llama3.2:1b") (ne .DistillationModel "mistral:latest")}}{{.DistillationModel}}{{end}}">
 				</div>
 				<div class="form-group">
 					<label for="distillation_prompt">Distillation System Prompt</label>
@@ -235,6 +239,16 @@
 		</div>
 
 		<script>
+		function toggleCustomModel(value) {
+			const customInput = document.getElementById('custom_model');
+			if (value === 'custom') {
+				customInput.style.display = 'block';
+				customInput.focus();
+			} else {
+				customInput.style.display = 'none';
+			}
+		}
+
 		function updateProgress() {
 			fetch('/download-status')
 				.then(response => response.json())

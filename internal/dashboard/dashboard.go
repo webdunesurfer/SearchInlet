@@ -177,6 +177,12 @@ func (d *Dashboard) HandleSaveSettings(w http.ResponseWriter, r *http.Request) {
 
 	distillationEnabled := r.FormValue("distillation_enabled") == "on"
 	distillationModel := r.FormValue("distillation_model")
+	customModel := r.FormValue("custom_model")
+
+	if distillationModel == "custom" && customModel != "" {
+		distillationModel = customModel
+	}
+
 	distillationPrompt := r.FormValue("distillation_prompt")
 
 	oldModel := d.getSetting("distillation_model", "")
