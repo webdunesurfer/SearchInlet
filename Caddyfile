@@ -10,4 +10,7 @@
     log {
         output file /var/log/caddy/access.log
     }
+
+    # Enable compression
+    encode gzip
 }
