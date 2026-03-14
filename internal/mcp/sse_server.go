@@ -87,7 +87,7 @@ func (s *SSEServer) handleSearch(ctx context.Context, req *mcp.CallToolRequest, 
 
 	maxTokens := args.MaxTokens
 	if maxTokens <= 0 {
-		maxTokens = 2000
+		maxTokens = 3000
 	}
 
 	metrics := auth.UsageMetrics{}
