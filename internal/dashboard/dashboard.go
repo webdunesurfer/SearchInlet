@@ -58,9 +58,13 @@ type DashboardData struct {
 }
 
 type UsageStat struct {
-	TokenName string
-	TotalUses int64
-	LastUsed  time.Time
+	TokenName        string
+	TotalUses        int64
+	LastUsed         time.Time
+	AvgSearchMS      int64
+	AvgDistillMS     int64
+	AvgCompression   float64
+	DistillationUsed int64
 }
 
 func NewDashboard(db *gorm.DB, tm *auth.TokenManager, adminUser, adminPass, ollamaURL string) *Dashboard {
@@ -435,10 +439,32 @@ func (d *Dashboard) getUsageStats() ([]UsageStat, error) {
 			lastUsed = lastLog.CreatedAt
 		}
 
+		var metrics struct {
+			AvgSearch    float64
+			AvgDistill   float64
+			TotalInput   int64
+			TotalOutput  int64
+			DistillCount int64
+		}
+
+		d.db.Model(&db.UsageLog{}).
+			Select("AVG(search_latency_ms) as avg_search, AVG(distill_latency_ms) as avg_distill, SUM(input_tokens) as total_input, SUM(output_tokens) as total_output, SUM(CASE WHEN distillation_enabled THEN 1 ELSE 0 END) as distill_count").
+			Where("token_id = ?", token.ID).
+			Scan(&metrics)
+
+		compression := 0.0
+		if metrics.TotalInput > 0 {
+			compression = (1.0 - float64(metrics.TotalOutput)/float64(metrics.TotalInput)) * 100
+		}
+
 		stats = append(stats, UsageStat{
-			TokenName: token.Name,
-			TotalUses: count,
-			LastUsed:  lastUsed,
+			TokenName:        token.Name,
+			TotalUses:        count,
+			LastUsed:         lastUsed,
+			AvgSearchMS:      int64(metrics.AvgSearch),
+			AvgDistillMS:     int64(metrics.AvgDistill),
+			AvgCompression:   compression,
+			DistillationUsed: metrics.DistillCount,
 		})
 	}
 

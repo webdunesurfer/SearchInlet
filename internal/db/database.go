@@ -19,10 +19,15 @@ type Token struct {
 }
 
 type UsageLog struct {
-	ID        uint   `gorm:"primaryKey"`
-	TokenID   uint   `gorm:"not null;index"`
-	Endpoint  string `gorm:"not null"`
-	CreatedAt time.Time
+	ID                  uint      `gorm:"primaryKey"`
+	TokenID             uint      `gorm:"not null;index"`
+	Endpoint            string    `gorm:"not null"`
+	SearchLatencyMS     int64     // Time taken to fetch from SearXNG
+	DistillLatencyMS    int64     // Time taken for Ollama distillation
+	InputTokens         int       // Tokens before optimization/distillation
+	OutputTokens        int       // Tokens after optimization/distillation
+	DistillationEnabled bool      // Whether distillation was used
+	CreatedAt           time.Time
 }
 
 type LoginAttempt struct {

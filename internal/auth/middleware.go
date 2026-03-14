@@ -41,7 +41,6 @@ func Middleware(tm *TokenManager) func(http.Handler) http.Handler {
 					http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
 					return
 				}
-				_ = tm.LogUsage(token.ID, r.URL.Path)
 			}
 
 			ctx := r.Context()

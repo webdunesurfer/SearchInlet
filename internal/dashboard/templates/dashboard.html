@@ -205,23 +205,42 @@
 		</div>
 
 		<div class="card">
-			<h2>Usage Overview (Last 30 Days)</h2>
+			<h2>Performance Overview (Last 30 Days)</h2>
 			<table>
 				<thead>
 					<tr>
 						<th>Token Name</th>
-						<th style="text-align: center;">Total Requests</th>
+						<th style="text-align: center;">Requests</th>
+						<th style="text-align: center;">Avg Search</th>
+						<th style="text-align: center;">Avg Distill</th>
+						<th style="text-align: center;">Compression</th>
 						<th>Latest Activity</th>
 					</tr>
 				</thead>
 				<tbody>
 					{{range .UsageStats}}
 					<tr>
-						<td>{{.TokenName}}</td>
-						<td style="text-align: center; font-weight: 700;">{{.TotalUses}}</td>
+						<td style="font-weight: 600;">{{.TokenName}}</td>
+						<td style="text-align: center;">{{.TotalUses}}</td>
+						<td style="text-align: center; color: #666;">{{.AvgSearchMS}}ms</td>
+						<td style="text-align: center;">
+							{{if gt .DistillationUsed 0}}
+								<span style="color: #28a745; font-weight: bold;">{{.AvgDistillMS}}ms</span>
+								<div style="font-size: 10px; color: #999;">({{.DistillationUsed}} uses)</div>
+							{{else}}
+								<span style="color: #ccc;">-</span>
+							{{if .AvgCompression}}
+							{{end}}
+							{{end}}
+						</td>
+						<td style="text-align: center;">
+							<span class="status-badge status-active" style="background: #eef; color: #007bff;">
+								{{printf "%.1f" .AvgCompression}}%
+							</span>
+						</td>
 						<td>
 							{{if not .LastUsed.IsZero}}
-							{{.LastUsed.Format "Jan 02, 15:04:05"}}
+							{{.LastUsed.Format "Jan 02, 15:04"}}
 							{{else}}
 							<span style="color: #999;">No activity</span>
 							{{end}}
@@ -230,7 +249,7 @@
 					{{end}}
 					{{if not .UsageStats}}
 					<tr>
-						<td colspan="3" style="text-align: center; padding: 40px; color: #999;">No usage data recorded yet.</td>
+						<td colspan="6" style="text-align: center; padding: 40px; color: #999;">No usage data recorded yet.</td>
 					</tr>
 					{{end}}
 				</tbody>

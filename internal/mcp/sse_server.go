@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/webdunesurfer/SearchInlet/internal/auth"
@@ -89,9 +90,14 @@ func (s *SSEServer) handleSearch(ctx context.Context, req *mcp.CallToolRequest, 
 		maxTokens = 2000
 	}
 
+	metrics := auth.UsageMetrics{}
+	startTime := time.Now()
+
 	resp, err := s.searxng.Search(ctx, args.Query, &searxng.SearchOptions{
 		Engines: args.Engines,
 	})
+	metrics.SearchLatencyMS = time.Since(startTime).Milliseconds()
+
 	if err != nil {
 		return nil, nil, fmt.Errorf("searxng search failed: %w", err)
 	}
@@ -109,6 +115,9 @@ func (s *SSEServer) handleSearch(ctx context.Context, req *mcp.CallToolRequest, 
 		snippets = append(snippets, formatted)
 	}
 
+	rawText := strings.Join(snippets, "\n---\n")
+	metrics.InputTokens = s.truncator.CountTokens(rawText)
+
 	optimizedSnippets := s.truncator.TruncateResults(snippets, maxTokens)
 	finalText := strings.Join(optimizedSnippets, "\n---\n")
 
@@ -118,11 +127,15 @@ func (s *SSEServer) handleSearch(ctx context.Context, req *mcp.CallToolRequest, 
 		// --- Distillation Logic ---
 		distEnabled := s.getSetting("distillation_enabled", "false") == "true"
 		if distEnabled {
+			metrics.DistillationEnabled = true
 			log.Printf("Distilling results for query: %s", args.Query)
 			model := s.getSetting("distillation_model", "qwen2.5:3b")
 			prompt := s.getSetting("distillation_prompt", "Summarize and extract the most relevant information from the following search results. Be concise and maintain technical accuracy.")
 			
+			distStart := time.Now()
 			distilled, err := s.distiller.Distill(ctx, model, prompt, finalText)
+			metrics.DistillLatencyMS = time.Since(distStart).Milliseconds()
+
 			if err != nil {
 				log.Printf("Distillation failed: %v", err)
 				// Fallback to original text if distillation fails
@@ -130,6 +143,15 @@ func (s *SSEServer) handleSearch(ctx context.Context, req *mcp.CallToolRequest, 
 				finalText = distilled
 			}
 		}
+	}
+
+	metrics.OutputTokens = s.truncator.CountTokens(finalText)
+
+	// Record metrics in background
+	if tokenID, ok := auth.GetTokenID(req.Context()); ok {
+		go func() {
+			_ = s.tokenManager.LogUsage(tokenID, "search", metrics)
+		}()
 	}
 
 	return &mcp.CallToolResult{

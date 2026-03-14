@@ -106,10 +106,23 @@ func (tm *TokenManager) CheckRateLimit(tokenID uint) bool {
 	return count < int64(tm.limitPerDay)
 }
 
-func (tm *TokenManager) LogUsage(tokenID uint, endpoint string) error {
+type UsageMetrics struct {
+	SearchLatencyMS     int64
+	DistillLatencyMS    int64
+	InputTokens         int
+	OutputTokens        int
+	DistillationEnabled bool
+}
+
+func (tm *TokenManager) LogUsage(tokenID uint, endpoint string, m UsageMetrics) error {
 	log := &db.UsageLog{
-		TokenID:  tokenID,
-		Endpoint: endpoint,
+		TokenID:             tokenID,
+		Endpoint:            endpoint,
+		SearchLatencyMS:     m.SearchLatencyMS,
+		DistillLatencyMS:    m.DistillLatencyMS,
+		InputTokens:         m.InputTokens,
+		OutputTokens:        m.OutputTokens,
+		DistillationEnabled: m.DistillationEnabled,
 	}
 	return tm.db.Create(log).Error
 }
