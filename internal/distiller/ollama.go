@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"runtime"
 	"time"
 )
 
@@ -146,20 +145,10 @@ func (c *OllamaClient) DeleteModel(ctx context.Context, model string) error {
 func (c *OllamaClient) Distill(ctx context.Context, model, systemPrompt, content string) (string, error) {
 	fullPrompt := fmt.Sprintf("%s\n\nCONTENT TO DISTILL:\n%s", systemPrompt, content)
 
-	// Calculate threads: half of available cores, min 1
-	numCores := runtime.NumCPU()
-	numThreads := numCores / 2
-	if numThreads < 1 {
-		numThreads = 1
-	}
-
 	reqBody, err := json.Marshal(GenerateRequest{
 		Model:  model,
 		Prompt: fullPrompt,
 		Stream: false,
-		Options: map[string]any{
-			"num_thread": numThreads,
-		},
 	})
 	if err != nil {
 		return "", err
