@@ -38,6 +38,7 @@ type Dashboard struct {
 	adminUser        string
 	adminPass        string
 	sessionToken     string
+	csrfToken        string
 	distiller        *distiller.OllamaClient
 	downloadProgress map[string]DownloadStatus
 	progressMu       sync.RWMutex
@@ -55,6 +56,7 @@ type DashboardData struct {
 	DistillationModel   string
 	DistillationPrompt  string
 	DownloadedModels    []string
+	CSRFToken           string
 }
 
 type UsageStat struct {
@@ -73,6 +75,10 @@ func NewDashboard(db *gorm.DB, tm *auth.TokenManager, adminUser, adminPass, olla
 	rand.Read(bytes)
 	sessionToken := hex.EncodeToString(bytes)
 
+	bytes = make([]byte, 32)
+	rand.Read(bytes)
+	csrfToken := hex.EncodeToString(bytes)
+
 	log.Printf("Initializing Dashboard with Admin User: %s (Password length: %d)", adminUser, len(adminPass))
 
 	return &Dashboard{
@@ -83,9 +89,19 @@ func NewDashboard(db *gorm.DB, tm *auth.TokenManager, adminUser, adminPass, olla
 		adminUser:        adminUser,
 		adminPass:        adminPass,
 		sessionToken:     sessionToken,
+		csrfToken:        csrfToken,
 		distiller:        distiller.NewOllamaClient(ollamaURL),
 		downloadProgress: make(map[string]DownloadStatus),
 	}
+}
+
+func (d *Dashboard) verifyCSRF(r *http.Request) bool {
+	// For POST requests, check the form value
+	if r.Method == "POST" {
+		return r.FormValue("csrf_token") == d.csrfToken
+	}
+	// For GET requests (revoke, delete), check query param
+	return r.URL.Query().Get("csrf_token") == d.csrfToken
 }
 
 func (d *Dashboard) getSetting(key, defaultValue string) string {
@@ -112,7 +128,9 @@ func (d *Dashboard) HandleHome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := DashboardData{}
+	data := DashboardData{
+		CSRFToken: d.csrfToken,
+	}
 	
 	// Determine the base URL for the instructions
 	scheme := "https"
@@ -177,6 +195,11 @@ func (d *Dashboard) HandleSaveSettings(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	if !d.verifyCSRF(r) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
 		return
 	}
 
@@ -270,6 +293,11 @@ func (d *Dashboard) HandleClearStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !d.verifyCSRF(r) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		return
+	}
+
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
 		http.Error(w, "Token ID required", http.StatusBadRequest)
@@ -293,6 +321,11 @@ func (d *Dashboard) HandleClearStats(w http.ResponseWriter, r *http.Request) {
 func (d *Dashboard) HandleDeleteModel(w http.ResponseWriter, r *http.Request) {
 	if !d.authenticate(w, r) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if !d.verifyCSRF(r) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
 		return
 	}
 
@@ -404,6 +437,11 @@ func (d *Dashboard) HandleCreateToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "POST" {
+		if !d.verifyCSRF(r) {
+			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+			return
+		}
+
 		name := r.FormValue("name")
 		if name == "" {
 			name = "Token " + time.Now().Format("2006-01-02 15:04:05")
@@ -431,6 +469,11 @@ func (d *Dashboard) HandleCreateToken(w http.ResponseWriter, r *http.Request) {
 func (d *Dashboard) HandleRevokeToken(w http.ResponseWriter, r *http.Request) {
 	if !d.authenticate(w, r) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if !d.verifyCSRF(r) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
 		return
 	}
 
