@@ -77,14 +77,29 @@ func (r *Reader) ReadURL(ctx context.Context, url string) (string, string, error
 
 func (r *Reader) extractText(s *goquery.Selection) string {
 	var sb strings.Builder
-	s.Find("h1, h2, h3, h4, h5, h6, p, li").Each(func(i int, sel *goquery.Selection) {
+	s.Find("h1, h2, h3, h4, h5, h6, p, li, table").Each(func(i int, sel *goquery.Selection) {
+		tag := goquery.NodeName(sel)
+		
+		if tag == "table" {
+			sb.WriteString("\n\n[TABLE]\n")
+			sel.Find("tr").Each(func(j int, tr *goquery.Selection) {
+				var row []string
+				tr.Find("th, td").Each(func(k int, cell *goquery.Selection) {
+					row = append(row, strings.TrimSpace(cell.Text()))
+				})
+				if len(row) > 0 {
+					sb.WriteString("| " + strings.Join(row, " | ") + " |\n")
+				}
+			})
+			return
+		}
+
 		text := strings.TrimSpace(sel.Text())
 		if text == "" {
 			return
 		}
 
 		// Add formatting markers
-		tag := goquery.NodeName(sel)
 		if strings.HasPrefix(tag, "h") {
 			sb.WriteString("\n\n# " + text + "\n")
 		} else if tag == "li" {
