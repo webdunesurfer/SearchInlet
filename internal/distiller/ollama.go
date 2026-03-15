@@ -142,13 +142,13 @@ func (c *OllamaClient) DeleteModel(ctx context.Context, model string) error {
 	return nil
 }
 
-func (c *OllamaClient) Distill(ctx context.Context, model, systemPrompt, content string) (string, error) {
+func (c *OllamaClient) DistillStream(ctx context.Context, model, systemPrompt, content string, onChunk func(string)) (string, error) {
 	fullPrompt := fmt.Sprintf("%s\n\nCONTENT TO DISTILL:\n%s", systemPrompt, content)
 
 	reqBody, err := json.Marshal(GenerateRequest{
 		Model:  model,
 		Prompt: fullPrompt,
-		Stream: false,
+		Stream: true,
 	})
 	if err != nil {
 		return "", err
@@ -170,10 +170,29 @@ func (c *OllamaClient) Distill(ctx context.Context, model, systemPrompt, content
 		return "", fmt.Errorf("ollama returned status %d", resp.StatusCode)
 	}
 
-	var genResp GenerateResponse
-	if err := json.NewDecoder(resp.Body).Decode(&genResp); err != nil {
-		return "", err
+	var fullResponse strings.Builder
+	decoder := json.NewDecoder(resp.Body)
+	for {
+		var chunk struct {
+			Response string `json:"response"`
+			Done     bool   `json:"done"`
+		}
+		if err := decoder.Decode(&chunk); err != nil {
+			if err.Error() == "EOF" {
+				break
+			}
+			return fullResponse.String(), err
+		}
+
+		fullResponse.WriteString(chunk.Response)
+		if onChunk != nil && chunk.Response != "" {
+			onChunk(chunk.Response)
+		}
+
+		if chunk.Done {
+			break
+		}
 	}
 
-	return genResp.Response, nil
+	return fullResponse.String(), nil
 }

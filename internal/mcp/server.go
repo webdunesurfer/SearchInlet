@@ -8,6 +8,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/webdunesurfer/SearchInlet/internal/optimizer"
+	"github.com/webdunesurfer/SearchInlet/internal/reader"
 	"github.com/webdunesurfer/SearchInlet/internal/searxng"
 )
 
@@ -17,6 +18,7 @@ type Server struct {
 	searxng   *searxng.Client
 	sanitizer *optimizer.Sanitizer
 	truncator *optimizer.Truncator
+	reader    *reader.Reader
 }
 
 // SearchArgs defines the input for the search tool
@@ -25,6 +27,12 @@ type SearchArgs struct {
 	Limit     int      `json:"limit,omitempty" jsonschema:"description:Maximum number of results (default 10),minimum:1,maximum:50"`
 	Engines   []string `json:"engines,omitempty" jsonschema:"description:Specific search engines to use"`
 	MaxTokens int      `json:"max_tokens,omitempty" jsonschema:"description:Maximum tokens for the combined results (default 3000)"`
+}
+
+// ReadArgs defines the input for the read_page tool
+type ReadArgs struct {
+	URL       string `json:"url" jsonschema:"description:The URL of the page to read"`
+	MaxTokens int    `json:"max_tokens,omitempty" jsonschema:"description:Maximum tokens for the content (default 3000)"`
 }
 
 // NewServer initializes the MCP server with SearXNG and Optimizer components
@@ -52,6 +60,7 @@ func NewServer(name, version, searxngURL string) (*Server, error) {
 		searxng:   searxngClient,
 		sanitizer: sanitizer,
 		truncator: truncator,
+		reader:    reader.NewReader(),
 	}
 
 	s.registerTools()
@@ -64,6 +73,40 @@ func (s *Server) registerTools() {
 		Name:        "search",
 		Description: "Search the internet via SearXNG with LLM-optimized output",
 	}, s.handleSearch)
+
+	mcp.AddTool(s.mcpServer, &mcp.Tool{
+		Name:        "read_page",
+		Description: "Fetch and read the full content of a specific webpage, optimized for LLM context",
+	}, s.handleRead)
+}
+
+func (s *Server) handleRead(ctx context.Context, req *mcp.CallToolRequest, args ReadArgs) (*mcp.CallToolResult, any, error) {
+	if args.URL == "" {
+		return nil, nil, fmt.Errorf("url is required")
+	}
+
+	maxTokens := args.MaxTokens
+	if maxTokens <= 0 {
+		maxTokens = 3000
+	}
+
+	title, content, err := s.reader.ReadURL(ctx, args.URL)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read page: %w", err)
+	}
+
+	// Truncate to budget
+	truncated := s.truncator.TruncateText(content, maxTokens)
+
+	finalText := fmt.Sprintf("TITLE: %s\nURL: %s\n\nCONTENT:\n%s", title, args.URL, truncated)
+
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{
+			&mcp.TextContent{
+				Text: finalText,
+			},
+		},
+	}, nil, nil
 }
 
 func (s *Server) handleSearch(ctx context.Context, req *mcp.CallToolRequest, args SearchArgs) (*mcp.CallToolResult, any, error) {

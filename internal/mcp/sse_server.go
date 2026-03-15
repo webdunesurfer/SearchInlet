@@ -13,6 +13,7 @@ import (
 	"github.com/webdunesurfer/SearchInlet/internal/db"
 	"github.com/webdunesurfer/SearchInlet/internal/distiller"
 	"github.com/webdunesurfer/SearchInlet/internal/optimizer"
+	"github.com/webdunesurfer/SearchInlet/internal/reader"
 	"github.com/webdunesurfer/SearchInlet/internal/searxng"
 	"gorm.io/gorm"
 )
@@ -24,6 +25,7 @@ type SSEServer struct {
 	truncator    *optimizer.Truncator
 	tokenManager *auth.TokenManager
 	distiller    *distiller.OllamaClient
+	reader       *reader.Reader
 	db           *gorm.DB
 }
 
@@ -53,6 +55,7 @@ func NewSSEServer(name, version, searxngURL string, tm *auth.TokenManager, datab
 		truncator:    truncator,
 		tokenManager: tm,
 		distiller:    distiller.NewOllamaClient(ollamaURL),
+		reader:       reader.NewReader(),
 		db:           database,
 	}
 
@@ -65,6 +68,11 @@ func (s *SSEServer) registerTools() {
 		Name:        "search",
 		Description: "Search the internet via SearXNG with LLM-optimized output",
 	}, s.handleSearch)
+
+	mcp.AddTool(s.mcpServer, &mcp.Tool{
+		Name:        "read_page",
+		Description: "Fetch and read the full content of a specific webpage, optimized for LLM context",
+	}, s.handleRead)
 }
 
 func (s *SSEServer) getSetting(key, defaultValue string) string {
@@ -73,6 +81,77 @@ func (s *SSEServer) getSetting(key, defaultValue string) string {
 		return defaultValue
 	}
 	return setting.Value
+}
+
+func (s *SSEServer) handleRead(ctx context.Context, req *mcp.CallToolRequest, args ReadArgs) (*mcp.CallToolResult, any, error) {
+	if args.URL == "" {
+		return nil, nil, fmt.Errorf("url is required")
+	}
+
+	maxTokens := args.MaxTokens
+	if maxTokens <= 0 {
+		maxTokens = 3000
+	}
+
+	metrics := auth.UsageMetrics{}
+	start := time.Now()
+
+	title, content, err := s.reader.ReadURL(ctx, args.URL)
+	metrics.SearchLatencyMS = time.Since(start).Milliseconds()
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read page: %w", err)
+	}
+
+	metrics.InputTokens = s.truncator.CountTokens(content)
+
+	// Truncate to budget
+	finalText := s.truncator.TruncateText(content, maxTokens)
+
+	// --- Distillation Logic ---
+	distEnabled := s.getSetting("distillation_enabled", "false") == "true"
+	if distEnabled {
+		metrics.DistillationEnabled = true
+		log.Printf("Distilling page content for URL: %s", args.URL)
+		model := s.getSetting("distillation_model", "llama3.2:1b")
+		prompt := s.getSetting("distillation_prompt", "Summarize and extract the most relevant information from the following content. Be concise and maintain technical accuracy.")
+		
+		distStart := time.Now()
+		
+		// Use streaming internally to show progress in logs
+		lastLog := time.Now()
+		distilled, err := s.distiller.DistillStream(ctx, model, prompt, finalText, func(chunk string) {
+			if time.Since(lastLog) > 5*time.Second {
+				log.Printf("... still distilling %s ...", args.URL)
+				lastLog = time.Now()
+			}
+		})
+		metrics.DistillLatencyMS = time.Since(distStart).Milliseconds()
+
+		if err != nil {
+			log.Printf("Distillation failed: %v", err)
+		} else {
+			finalText = distilled
+		}
+	}
+
+	metrics.OutputTokens = s.truncator.CountTokens(finalText)
+
+	if tokenID, ok := auth.GetTokenID(ctx); ok {
+		go func() {
+			_ = s.tokenManager.LogUsage(tokenID, "read_page", metrics)
+		}()
+	}
+
+	resultText := fmt.Sprintf("TITLE: %s\nURL: %s\n\nCONTENT:\n%s", title, args.URL, finalText)
+
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{
+			&mcp.TextContent{
+				Text: resultText,
+			},
+		},
+	}, nil, nil
 }
 
 func (s *SSEServer) handleSearch(ctx context.Context, req *mcp.CallToolRequest, args SearchArgs) (*mcp.CallToolResult, any, error) {
@@ -129,16 +208,21 @@ func (s *SSEServer) handleSearch(ctx context.Context, req *mcp.CallToolRequest, 
 		if distEnabled {
 			metrics.DistillationEnabled = true
 			log.Printf("Distilling results for query: %s", args.Query)
-			model := s.getSetting("distillation_model", "qwen2.5:1.5b")
+			model := s.getSetting("distillation_model", "llama3.2:1b")
 			prompt := s.getSetting("distillation_prompt", "Summarize and extract the most relevant information from the following search results. Be concise and maintain technical accuracy.")
 			
 			distStart := time.Now()
-			distilled, err := s.distiller.Distill(ctx, model, prompt, finalText)
+			lastLog := time.Now()
+			distilled, err := s.distiller.DistillStream(ctx, model, prompt, finalText, func(chunk string) {
+				if time.Since(lastLog) > 5*time.Second {
+					log.Printf("... distilling search results for: %s ...", args.Query)
+					lastLog = time.Now()
+				}
+			})
 			metrics.DistillLatencyMS = time.Since(distStart).Milliseconds()
 
 			if err != nil {
 				log.Printf("Distillation failed: %v", err)
-				// Fallback to original text if distillation fails
 			} else {
 				finalText = distilled
 			}
@@ -147,7 +231,6 @@ func (s *SSEServer) handleSearch(ctx context.Context, req *mcp.CallToolRequest, 
 
 	metrics.OutputTokens = s.truncator.CountTokens(finalText)
 
-	// Record metrics in background
 	if tokenID, ok := auth.GetTokenID(ctx); ok {
 		go func() {
 			_ = s.tokenManager.LogUsage(tokenID, "search", metrics)
@@ -164,12 +247,10 @@ func (s *SSEServer) handleSearch(ctx context.Context, req *mcp.CallToolRequest, 
 }
 
 func (s *SSEServer) Handler() http.Handler {
-	// Create the official SDK SSE handler
 	sseHandler := mcp.NewSSEHandler(func(req *http.Request) *mcp.Server {
 		return s.mcpServer
 	}, nil)
 
-	// Wrap it in our token authentication/rate-limiting middleware
 	authMiddleware := auth.Middleware(s.tokenManager)
 	
 	return authMiddleware(sseHandler)
