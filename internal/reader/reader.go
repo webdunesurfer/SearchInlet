@@ -10,8 +10,19 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/microcosm-cc/bluemonday"
 )
+
+type Reader struct {
+	client *http.Client
+}
+
+func NewReader() *Reader {
+	return &Reader{
+		client: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+	}
+}
 
 var blockedRanges = []*net.IPNet{
 	parseCIDR("127.0.0.0/8"),    // Loopback
