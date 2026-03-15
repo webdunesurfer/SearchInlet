@@ -3,7 +3,9 @@ package reader
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -11,22 +13,50 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
-type Reader struct {
-	client    *http.Client
-	sanitizer *bluemonday.Policy
+var blockedRanges = []*net.IPNet{
+	parseCIDR("127.0.0.0/8"),    // Loopback
+	parseCIDR("10.0.0.0/8"),     // Private-A
+	parseCIDR("172.16.0.0/12"),  // Private-B
+	parseCIDR("192.168.0.0/16"), // Private-C
+	parseCIDR("169.254.0.0/16"), // Link-local
+	parseCIDR("::1/128"),        // IPv6 Loopback
+	parseCIDR("fe80::/10"),      // IPv6 Link-local
+	parseCIDR("fc00::/7"),       // IPv6 Unique local
 }
 
-func NewReader() *Reader {
-	return &Reader{
-		client: &http.Client{
-			Timeout: 30 * time.Second,
-		},
-		sanitizer: bluemonday.StrictPolicy(),
+func parseCIDR(s string) *net.IPNet {
+	_, n, _ := net.ParseCIDR(s)
+	return n
+}
+
+func isBlocked(ip net.IP) bool {
+	for _, block := range blockedRanges {
+		if block.Contains(ip) {
+			return true
+		}
 	}
+	return false
 }
 
-func (r *Reader) ReadURL(ctx context.Context, url string) (string, string, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+func (r *Reader) ReadURL(ctx context.Context, targetURL string) (string, string, error) {
+	u, err := url.Parse(targetURL)
+	if err != nil {
+		return "", "", fmt.Errorf("invalid URL: %w", err)
+	}
+
+	// Resolve IP to prevent SSRF
+	ips, err := net.LookupIP(u.Hostname())
+	if err != nil {
+		return "", "", fmt.Errorf("failed to resolve hostname: %w", err)
+	}
+
+	for _, ip := range ips {
+		if isBlocked(ip) {
+			return "", "", fmt.Errorf("access to private network address %s is blocked", ip.String())
+		}
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "GET", targetURL, nil)
 	if err != nil {
 		return "", "", err
 	}
