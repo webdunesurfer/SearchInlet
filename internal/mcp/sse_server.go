@@ -106,7 +106,7 @@ func (s *SSEServer) handleRead(ctx context.Context, req *mcp.CallToolRequest, ar
 	metrics.InputTokens = s.truncator.CountTokens(content)
 
 	// Truncate to budget
-	finalText := s.truncator.TruncateText(content, maxTokens)
+	finalText := s.truncator.Truncate(content, maxTokens)
 
 	// --- Distillation Logic ---
 	distEnabled := s.getSetting("distillation_enabled", "false") == "true"

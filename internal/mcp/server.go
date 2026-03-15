@@ -96,7 +96,7 @@ func (s *Server) handleRead(ctx context.Context, req *mcp.CallToolRequest, args 
 	}
 
 	// Truncate to budget
-	truncated := s.truncator.TruncateText(content, maxTokens)
+	truncated := s.truncator.Truncate(content, maxTokens)
 
 	finalText := fmt.Sprintf("TITLE: %s\nURL: %s\n\nCONTENT:\n%s", title, args.URL, truncated)
 
