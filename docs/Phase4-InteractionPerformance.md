@@ -12,7 +12,7 @@ The goal of Phase 4 is to make SearchInlet a more interactive and capable resear
 - [x] Updated `OllamaClient` to support `stream: true` generating real-time chunks.
 - [x] Implemented internal streaming in search handlers to prevent "frozen" backend state.
 - [x] Periodic logging of distillation progress to server console.
-- [ ] Implement `notifications/progress` support for compatible MCP clients.
+- [x] Optimized model switching with accurate "Applying" status feedback.
 
 ## 4.3 UI & Metrics
 - [x] Added Performance Overview to dashboard.
